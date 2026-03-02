@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS agents (
   model TEXT,
   source TEXT DEFAULT 'local',
   gateway_agent_id TEXT,
+  session_key_prefix TEXT,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );

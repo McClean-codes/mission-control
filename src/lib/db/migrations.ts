@@ -216,6 +216,20 @@ const migrations: Migration[] = [
         console.log('[Migration 008] Added status_reason to tasks');
       }
     }
+  },
+  {
+    id: '009',
+    name: 'add_agent_session_key_prefix',
+    up: (db) => {
+      console.log('[Migration 009] Adding session_key_prefix to agents...');
+
+      const agentsInfo = db.prepare("PRAGMA table_info(agents)").all() as { name: string }[];
+
+      if (!agentsInfo.some(col => col.name === 'session_key_prefix')) {
+        db.exec(`ALTER TABLE agents ADD COLUMN session_key_prefix TEXT`);
+        console.log('[Migration 009] Added session_key_prefix to agents');
+      }
+    }
   }
 ];
 

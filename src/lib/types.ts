@@ -37,6 +37,7 @@ export interface Agent {
   model?: string;
   source: AgentSource;
   gateway_agent_id?: string;
+  session_key_prefix?: string;
   created_at: string;
   updated_at: string;
 }
