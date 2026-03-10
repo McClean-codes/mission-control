@@ -31,6 +31,14 @@ export const sqliteProvider: DbProvider = {
     throw new Error('SQLite deleteAgent not implemented — migration pending');
   },
 
+  async getAgentsExcluding(workspaceId: string): Promise<Agent[]> {
+    throw new Error('SQLite getAgentsExcluding not implemented — migration pending');
+  },
+
+  async upsertAgents(agents: Agent[]): Promise<Agent[]> {
+    throw new Error('SQLite upsertAgents not implemented — migration pending');
+  },
+
   // ======== Tasks ========
   async getTasks(workspaceId: string, filters?: TaskFilters): Promise<Task[]> {
     throw new Error('SQLite getTasks not implemented — migration pending');
@@ -63,6 +71,10 @@ export const sqliteProvider: DbProvider = {
 
   async createEvent(event: EventInput): Promise<Event> {
     throw new Error('SQLite createEvent not implemented — migration pending');
+  },
+
+  async updateEvent(id: string, updates: Partial<Event>): Promise<Event> {
+    throw new Error('SQLite updateEvent not implemented — migration pending');
   },
 
   async deleteEvent(id: string): Promise<void> {
@@ -273,6 +285,44 @@ export const sqliteProvider: DbProvider = {
 
   async deleteKnowledgeEntry(id: string): Promise<void> {
     throw new Error('SQLite deleteKnowledgeEntry not implemented — migration pending');
+  },
+
+  // ======== OpenClaw Sessions ========
+  async getOpenClawSession(id: string): Promise<Record<string, any> | undefined> {
+    throw new Error('SQLite getOpenClawSession not implemented — migration pending');
+  },
+
+  async createOpenClawSession(session: Record<string, any>): Promise<Record<string, any>> {
+    throw new Error('SQLite createOpenClawSession not implemented — migration pending');
+  },
+
+  async updateOpenClawSession(id: string, updates: Record<string, any>): Promise<Record<string, any>> {
+    throw new Error('SQLite updateOpenClawSession not implemented — migration pending');
+  },
+
+  async deleteOpenClawSession(id: string): Promise<void> {
+    throw new Error('SQLite deleteOpenClawSession not implemented — migration pending');
+  },
+
+  // ======== Task Roles ========
+  async getTaskRoles(taskId: string): Promise<Record<string, any>[]> {
+    throw new Error('SQLite getTaskRoles not implemented — migration pending');
+  },
+
+  async getTaskRole(id: string): Promise<Record<string, any> | undefined> {
+    throw new Error('SQLite getTaskRole not implemented — migration pending');
+  },
+
+  async createTaskRole(role: Record<string, any>): Promise<Record<string, any>> {
+    throw new Error('SQLite createTaskRole not implemented — migration pending');
+  },
+
+  async updateTaskRole(id: string, updates: Record<string, any>): Promise<Record<string, any>> {
+    throw new Error('SQLite updateTaskRole not implemented — migration pending');
+  },
+
+  async deleteTaskRole(id: string): Promise<void> {
+    throw new Error('SQLite deleteTaskRole not implemented — migration pending');
   },
 };
 

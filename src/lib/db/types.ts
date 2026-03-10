@@ -9,8 +9,10 @@ export interface DbProvider {
   // Agents
   getAgents(workspaceId: string): Promise<Agent[]>;
   getAgent(id: string): Promise<Agent | undefined>;
+  getAgentsExcluding(workspaceId: string): Promise<Agent[]>;
   createAgent(agent: AgentInput): Promise<Agent>;
   updateAgent(id: string, updates: Partial<Agent>): Promise<Agent>;
+  upsertAgents(agents: Agent[]): Promise<Agent[]>;
   deleteAgent(id: string): Promise<void>;
 
   // Tasks
@@ -24,6 +26,7 @@ export interface DbProvider {
   getEvents(workspaceId: string, limit?: number): Promise<Event[]>;
   getEvent(id: string): Promise<Event | undefined>;
   createEvent(event: EventInput): Promise<Event>;
+  updateEvent(id: string, updates: Partial<Event>): Promise<Event>;
   deleteEvent(id: string): Promise<void>;
 
   // Task Activities
@@ -94,6 +97,19 @@ export interface DbProvider {
   createKnowledgeEntry(entry: KnowledgeEntryInput): Promise<KnowledgeEntry>;
   updateKnowledgeEntry(id: string, updates: Partial<KnowledgeEntry>): Promise<KnowledgeEntry>;
   deleteKnowledgeEntry(id: string): Promise<void>;
+
+  // OpenClaw Sessions (for subagent spawning & management)
+  getOpenClawSession(id: string): Promise<Record<string, any> | undefined>;
+  createOpenClawSession(session: Record<string, any>): Promise<Record<string, any>>;
+  updateOpenClawSession(id: string, updates: Record<string, any>): Promise<Record<string, any>>;
+  deleteOpenClawSession(id: string): Promise<void>;
+
+  // Task Roles (for task role assignment)
+  getTaskRoles(taskId: string): Promise<Record<string, any>[]>;
+  getTaskRole(id: string): Promise<Record<string, any> | undefined>;
+  createTaskRole(role: Record<string, any>): Promise<Record<string, any>>;
+  updateTaskRole(id: string, updates: Record<string, any>): Promise<Record<string, any>>;
+  deleteTaskRole(id: string): Promise<void>;
 }
 
 // ============================================================================
