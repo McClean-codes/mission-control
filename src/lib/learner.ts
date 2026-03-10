@@ -1,13 +1,13 @@
-import { supabase } from '@/lib/db';
+import { db } from '@/lib/db';
 import type { KnowledgeEntry } from '@/lib/types';
 
 export async function notifyLearner(_taskId: string, _event: any): Promise<void> {
   // Learner notification (best-effort, not implemented in migration)
 }
 
-export async function getRelevantKnowledge(workspaceId: string, _taskTitle: string, limit = 5): Promise<KnowledgeEntry[]> {
-  const { data } = await supabase.from('knowledge_entries').select('*').eq('workspace_id', workspaceId).limit(limit);
-  return data || [];
+export async function getRelevantKnowledge(_workspaceId: string, _taskTitle: string, limit = 5): Promise<KnowledgeEntry[]> {
+  const entries = await db.getKnowledgeEntries();
+  return (entries || []).slice(0, limit);
 }
 
 export function formatKnowledgeForDispatch(entries: KnowledgeEntry[]): string {

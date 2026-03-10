@@ -44,8 +44,7 @@ Routes that are Phase 4 extensions (dispatch, heartbeats) are marked as `dispatc
 
 ### GET /api/agents/[id]/openclaw
 - **GET/POST/DELETE:** OpenClaw session operations
-- `supabase.from('openclaw_sessions')` calls (select/insert/delete/update) → `db.get/createOpenClawSession()` (NEW — these table calls need DbProvider methods)
-  - Gap: DbProvider doesn't have OpenClaw session methods
+- `supabase.from('openclaw_sessions')` calls (select/insert/delete/update) → `db.get/createOpenClawSession()` ✅ MIGRATED ✅
 
 ---
 
@@ -129,14 +128,32 @@ Routes that are Phase 4 extensions (dispatch, heartbeats) are marked as `dispatc
 ### GET /api/openclaw/models
 ### POST /api/openclaw/orchestra
 ### GET /api/openclaw/sessions
+- **GET:** List all OpenClaw sessions
+- `supabase.from('openclaw_sessions').select('*')` → `db.getOpenClawSession()` ✅ MIGRATED ✅
+
+### POST /api/openclaw/sessions
+- **POST:** Create OpenClaw session
+- `supabase.from('openclaw_sessions').insert({...})` → `db.createOpenClawSession()` ✅ MIGRATED ✅
+
 ### GET /api/openclaw/sessions/[id]
+- **GET:** Fetch single OpenClaw session
+- `supabase.from('openclaw_sessions').select('*').eq('id', id).single()` → `db.getOpenClawSession(id)` ✅ MIGRATED ✅
+
 ### PATCH /api/openclaw/sessions/[id]
+- **PATCH:** Update OpenClaw session
+- `supabase.from('openclaw_sessions').update(...).eq('id', id)` → `db.updateOpenClawSession(id, updates)` ✅ MIGRATED ✅
+
 ### DELETE /api/openclaw/sessions/[id]
+- **DELETE:** Delete OpenClaw session
+- `supabase.from('openclaw_sessions').delete().eq('id', id)` → `db.deleteOpenClawSession(id)` ✅ MIGRATED ✅
+
 ### GET /api/openclaw/sessions/[id]/history
+- **DB:** none — OpenClaw Gateway history proxy endpoint
+
 ### GET /api/openclaw/status
-- **DB:** mostly direct OpenClaw Gateway HTTP calls, but some Supabase calls for enrichment:
+- **DB:** mostly direct OpenClaw Gateway HTTP calls, with DB enrichment:
   - `supabase.from('agents').select('*')` → `db.getAgents()` ✅
-  - `supabase.from('openclaw_sessions').select('*')` → **NEEDS NEW TABLE** `openclaw_sessions` not in DbProvider
+  - `supabase.from('openclaw_sessions').select('*')` → `db.getOpenClawSession()` ✅ MIGRATED ✅
   - `supabase.from('events').select('*')` → `db.getEvents()` ✅
 
 ---
@@ -195,59 +212,59 @@ Routes that are Phase 4 extensions (dispatch, heartbeats) are marked as `dispatc
 
 ### GET /api/tasks/[id]/fail
 - **POST:** Mark task as failed
-- `supabase.from('tasks').select('*')` → `db.getTask(id)` ✅
-- `supabase.from('task_activities').insert({...})` → `db.createActivity(activity)` ✅
+- `supabase.from('tasks').select('*')` → `db.getTask(id)` ✅ MIGRATED ✅
+- `supabase.from('task_activities').insert({...})` → `db.createActivity(activity)` ✅ MIGRATED ✅
 
 ### GET /api/tasks/[id]/planning/answer
 - **POST:** Answer planning question
-- `supabase.from('planning_questions').select('*')` → `db.getPlanningQuestion(id)` ✅
+- `supabase.from('planning_questions').select('*')` → `db.getPlanningQuestion(id)` ✅ MIGRATED ✅
 
 ### POST /api/tasks/[id]/planning/approve
 - **POST:** Approve planning spec
-- `supabase.from('planning_specs').select('*')` → `db.getPlanningSpec(id)` ✅
-- `supabase.from('task_activities').insert({...})` → `db.createActivity(activity)` ✅
-- `supabase.from('tasks').update({...})` → `db.updateTask(id, data)` ✅
+- `supabase.from('planning_specs').select('*')` → `db.getPlanningSpec(id)` ✅ MIGRATED ✅
+- `supabase.from('task_activities').insert({...})` → `db.createActivity(activity)` ✅ MIGRATED ✅
+- `supabase.from('tasks').update({...})` → `db.updateTask(id, data)` ✅ MIGRATED ✅
 
 ### POST /api/tasks/[id]/planning/poll
 - **POST:** Poll planning status
-- `supabase.from('tasks').select('*')` → `db.getTask(id)` ✅
-- `supabase.from('planning_questions').select('*')` → `db.getPlanningQuestions()` ✅
-- `supabase.from('planning_specs').select('*')` → `db.getPlanningSpecs()` ✅
+- `supabase.from('tasks').select('*')` → `db.getTask(id)` ✅ MIGRATED ✅
+- `supabase.from('planning_questions').select('*')` → `db.getPlanningQuestionsByTask()` ✅ MIGRATED ✅
+- `supabase.from('planning_specs').select('*')` → `db.getPlanningSpecsByTask()` ✅ MIGRATED ✅
 
 ### POST /api/tasks/[id]/planning/retry-dispatch
 - **POST:** Retry task dispatch
-- `supabase.from('task_activities').insert({...})` → `db.createActivity(activity)` ✅
-- `supabase.from('tasks').update({...})` → `db.updateTask(id, data)` ✅
+- `supabase.from('task_activities').insert({...})` → `db.createActivity(activity)` ✅ MIGRATED ✅
+- `supabase.from('tasks').update({...})` → `db.updateTask(id, data)` ✅ MIGRATED ✅
 
 ### GET /api/tasks/[id]/planning
 - **GET:** Fetch planning info
-- `supabase.from('planning_questions').select('*')` → `db.getPlanningQuestions()` ✅
+- `supabase.from('planning_questions').select('*')` → `db.getPlanningQuestionsByTask()` ✅ MIGRATED ✅
 
 ### POST /api/tasks/[id]/planning
 - **POST:** Create planning question
-- `supabase.from('planning_questions').insert({...})` → `db.createPlanningQuestion(question)` ✅
+- `supabase.from('planning_questions').insert({...})` → `db.createPlanningQuestion(question)` ✅ MIGRATED ✅
 
 ### GET /api/tasks/[id]/roles
 - **GET:** List task roles
-- `supabase.from('task_roles').select('*')` → **NEEDS NEW METHOD** `db.getTaskRoles(taskId)`
+- `supabase.from('task_roles').select('*')` → `db.getTaskRoles(taskId)` ✅ MIGRATED ✅
 
 ### POST /api/tasks/[id]/roles
 - **POST:** Create task role
-- `supabase.from('task_roles').insert({...})` → **NEEDS NEW METHOD** `db.createTaskRole(role)`
+- `supabase.from('task_roles').insert({...})` → `db.createTaskRole(role)` ✅ MIGRATED ✅
 
 ### PATCH /api/tasks/[id]/roles/[roleId]
 - **PATCH:** Update task role
-- `supabase.from('task_roles').update(...).eq('id', roleId)` → **NEEDS NEW METHOD** `db.updateTaskRole(id, data)`
+- `supabase.from('task_roles').update(...).eq('id', roleId)` → `db.updateTaskRole(id, data)` ✅ MIGRATED ✅
 
 ### POST /api/tasks/[id]/subagent
 - **POST:** Spawn subagent
-- `supabase.from('openclaw_sessions').insert({...})` → **NEEDS NEW METHOD** `db.createOpenClawSession(session)` or stay Supabase-only
-- `supabase.from('task_activities').insert({...})` → `db.createActivity(activity)` ✅
+- `supabase.from('openclaw_sessions').insert({...})` → `db.createOpenClawSession(session)` ✅ MIGRATED ✅
+- `supabase.from('task_activities').insert({...})` → `db.createActivity(activity)` ✅ MIGRATED ✅
 
 ### POST /api/tasks/[id]/test
 - **POST:** Test task
-- `supabase.from('task_activities').insert({...})` → `db.createActivity(activity)` ✅
-- `supabase.from('tasks').update({...})` → `db.updateTask(id, data)` ✅
+- `supabase.from('task_activities').insert({...})` → `db.createActivity(activity)` ✅ MIGRATED ✅
+- `supabase.from('tasks').update({...})` → `db.updateTask(id, data)` ✅ MIGRATED ✅
 
 ---
 

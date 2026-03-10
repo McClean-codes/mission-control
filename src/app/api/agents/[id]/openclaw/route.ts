@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
+import { db } from '@/lib/db';
 
 type Params = {
   id: string;
@@ -10,20 +10,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<Pa
   try {
     const { id } = await params;
 
-    // Get the agent's OpenClaw session
-    const { data, error } = await supabase
-      .from('openclaw_sessions')
-      .select('*')
-      .eq('agent_id', id)
-      .eq('session_type', 'master')
-      .single();
-
-    if (error?.code === 'PGRST116') {
-      return NextResponse.json({ session: null });
-    }
-    if (error) throw error;
-
-    return NextResponse.json(data);
+    const session = await db.getOpenClawSession(id);
+    return NextResponse.json({ session: session || null });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch OpenClaw session' }, { status: 500 });
   }
@@ -39,26 +27,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<P
       return NextResponse.json({ error: 'session_key and gateway_url required' }, { status: 400 });
     }
 
-    // Create or update OpenClaw session
-    const sessionId = crypto.randomUUID();
-    const { data, error } = await supabase
-      .from('openclaw_sessions')
-      .upsert({
-        id: sessionId,
-        agent_id: id,
-        session_type: 'master',
-        workspace_id: 'default',
-        status: 'active',
-        metadata: {
-          session_key,
-          gateway_url,
-        },
-      }, { onConflict: 'agent_id' })
-      .select()
-      .single();
+    const session = await db.createOpenClawSession({
+      agent_id: id,
+      session_type: 'master',
+      workspace_id: 'default',
+      status: 'active',
+      metadata: {
+        session_key,
+        gateway_url,
+      },
+    });
 
-    if (error) throw error;
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json(session, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to create OpenClaw session' }, { status: 500 });
   }
@@ -68,14 +48,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   try {
     const { id } = await params;
 
-    // Delete the agent's OpenClaw session
-    const { error } = await supabase
-      .from('openclaw_sessions')
-      .delete()
-      .eq('agent_id', id)
-      .eq('session_type', 'master');
-
-    if (error) throw error;
+    await db.deleteOpenClawSession(id);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to disconnect OpenClaw session' }, { status: 500 });

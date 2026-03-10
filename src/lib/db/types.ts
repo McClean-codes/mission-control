@@ -78,10 +78,12 @@ export interface DbProvider {
   getWorkflowTemplate(id: string): Promise<WorkflowTemplate | undefined>;
   createWorkflowTemplate(template: WorkflowTemplateInput): Promise<WorkflowTemplate>;
   updateWorkflowTemplate(id: string, updates: Partial<WorkflowTemplate>): Promise<WorkflowTemplate>;
+  upsertWorkflowTemplate(template: WorkflowTemplate): Promise<WorkflowTemplate>;
   deleteWorkflowTemplate(id: string): Promise<void>;
 
   // Planning Questions
   getPlanningQuestions(): Promise<PlanningQuestion[]>;
+  getPlanningQuestionsByTask(taskId: string): Promise<any[]>;
   getPlanningQuestion(id: string): Promise<PlanningQuestion | undefined>;
   createPlanningQuestion(question: PlanningQuestionInput): Promise<PlanningQuestion>;
   updatePlanningQuestion(id: string, updates: Partial<PlanningQuestion>): Promise<PlanningQuestion>;
@@ -89,6 +91,7 @@ export interface DbProvider {
 
   // Planning Specs
   getPlanningSpecs(): Promise<PlanningSpec[]>;
+  getPlanningSpecsByTask(taskId: string): Promise<any[]>;
   getPlanningSpec(id: string): Promise<PlanningSpec | undefined>;
   createPlanningSpec(spec: PlanningSpecInput): Promise<PlanningSpec>;
   updatePlanningSpec(id: string, updates: Partial<PlanningSpec>): Promise<PlanningSpec>;

@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/db';
+import { db } from '@/lib/db';
 
 const OUR_AGENTS = [
   {
@@ -69,30 +69,31 @@ export async function bootstrapCoreAgents(workspaceId: string): Promise<void> {
     source: 'local'
   }));
 
-  const { error: agentError } = await supabase.from('agents').upsert(agents, { onConflict: 'id' });
-  if (agentError) throw agentError;
+  await db.upsertAgents(agents);
 
   // Upsert default workflow template
   const workflow = {
     ...DEFAULT_WORKFLOW,
     id: `${DEFAULT_WORKFLOW.id}-${workspaceId}`,
     workspace_id: workspaceId,
-    is_default: true
+    is_default: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
-  const { error: workflowError } = await supabase.from('workflow_templates').upsert(workflow, { onConflict: 'id' });
-  if (workflowError) throw workflowError;
+  await db.upsertWorkflowTemplate(workflow as any);
 }
 
 export async function cloneWorkflowTemplates(targetWorkspaceId: string): Promise<void> {
-  const { data: templates } = await supabase.from('workflow_templates').select('*').eq('workspace_id', 'default');
+  const templates = await db.getWorkflowTemplates('default');
   if (!templates || templates.length === 0) return;
 
-  const toInsert = templates.map((t: any) => ({
-    ...t,
-    id: `${t.id}-${targetWorkspaceId}`,
-    workspace_id: targetWorkspaceId
-  }));
-
-  await supabase.from('workflow_templates').insert(toInsert);
+  for (const t of templates) {
+    const toInsert = {
+      ...t,
+      id: `${t.id}-${targetWorkspaceId}`,
+      workspace_id: targetWorkspaceId
+    };
+    await db.upsertWorkflowTemplate(toInsert as any);
+  }
 }

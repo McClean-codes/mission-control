@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
+import { db } from '@/lib/db';
 
 type Params = {
   id: string;
@@ -16,40 +16,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<P
       return NextResponse.json({ error: 'agent_id required' }, { status: 400 });
     }
 
-    // Log the retry dispatch activity
-    const activityId = crypto.randomUUID();
-    const { error: activityError } = await supabase
-      .from('task_activities')
-      .insert({
-        id: activityId,
-        task_id: id,
-        activity_type: 'retry_dispatch',
-        data: {
-          agent_id: agent_id,
-          reason: reason || 'Planning iteration retry',
-        },
-        agent_id: agent_id,
-      });
+    const activity = await db.createActivity({
+      task_id: id,
+      agent_id: agent_id,
+      action: 'retry_dispatch',
+      details: {
+        reason: reason || 'Planning iteration retry',
+      },
+    });
 
-    if (activityError) throw activityError;
-
-    // Keep task in planning stage, mark as needing retry
-    const { data, error } = await supabase
-      .from('tasks')
-      .update({
-        status: 'planning',
-      })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
+    const task = await db.updateTask(id, { status: 'planning' });
 
     return NextResponse.json({
       success: true,
       task_id: id,
       agent_id: agent_id,
-      activity_id: activityId,
+      activity_id: activity.id,
       reason: reason || 'Retrying dispatch',
     });
   } catch (error) {

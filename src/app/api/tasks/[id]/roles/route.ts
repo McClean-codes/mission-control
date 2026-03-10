@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
+import { db } from '@/lib/db';
 
 type Params = {
   id: string;
@@ -10,14 +10,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<Pa
   try {
     const { id } = await params;
 
-    const { data, error } = await supabase
-      .from('task_roles')
-      .select('*')
-      .eq('task_id', id)
-      .order('created_at', { ascending: true });
-
-    if (error) throw error;
-    return NextResponse.json(data || []);
+    const roles = await db.getTaskRoles(id);
+    return NextResponse.json(roles);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch roles' }, { status: 500 });
   }
@@ -33,21 +27,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<P
       return NextResponse.json({ error: 'role required' }, { status: 400 });
     }
 
-    const roleId = crypto.randomUUID();
-    const { data, error } = await supabase
-      .from('task_roles')
-      .insert({
-        id: roleId,
-        task_id: id,
-        role,
-        agent_id: agent_id || null,
-        status: status || 'unassigned',
-      })
-      .select()
-      .single();
+    const taskRole = await db.createTaskRole({
+      task_id: id,
+      role,
+      agent_id: agent_id || null,
+      status: status || 'unassigned',
+    });
 
-    if (error) throw error;
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json(taskRole, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to create role' }, { status: 500 });
   }
@@ -66,15 +53,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (agent_id !== undefined) updates.agent_id = agent_id;
     if (status) updates.status = status;
 
-    const { data, error } = await supabase
-      .from('task_roles')
-      .update(updates)
-      .eq('id', roleId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return NextResponse.json(data);
+    const taskRole = await db.updateTaskRole(roleId, updates);
+    return NextResponse.json(taskRole);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update role' }, { status: 500 });
   }
