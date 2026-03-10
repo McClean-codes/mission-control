@@ -12,6 +12,7 @@
   "dependencies": {
     "@hello-pangea/dnd": "^17.0.0",
     "@supabase/supabase-js": "^2.99.0",
+    "better-sqlite3": "^9.0.0",
     "clsx": "^2.1.1",
     "css-tree": "^3.1.0",
     "date-fns": "^4.1.0",
@@ -33,7 +34,6 @@
     "@types/react-dom": "^18.2.25",
     "@types/uuid": "^10.0.0",
     "autoprefixer": "^10.4.20",
-    "better-sqlite3": "^9.0.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.21",
     "postcss": "^8.4.49",
