@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, ChevronRight, ChevronLeft, Zap, ZapOff, Loader2, Search } from 'lucide-react';
+import { supabase } from '@/lib/db';
 import { useMissionControl } from '@/lib/store';
 import type { Agent, AgentStatus, OpenClawSession } from '@/lib/types';
 import { AgentModal } from './AgentModal';
@@ -94,9 +95,25 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
       }
     };
 
+    // Initial load
     loadCheckpoints();
-    const interval = setInterval(loadCheckpoints, 30000);
-    return () => clearInterval(interval);
+
+    // Subscribe to checkpoint changes via Realtime
+    const channel = supabase
+      .channel('checkpoints-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'checkpoints' },
+        () => {
+          // Reload checkpoints on any change (INSERT, UPDATE, DELETE)
+          loadCheckpoints();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleConnectToOpenClaw = async (agent: Agent, e: React.MouseEvent) => {
