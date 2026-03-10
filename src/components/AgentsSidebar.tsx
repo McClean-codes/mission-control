@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, ChevronRight, ChevronLeft, Zap, ZapOff, Loader2, Search } from 'lucide-react';
-import { supabase } from '@/lib/db';
+import { supabase } from '@/lib/db/supabase/client';
 import { useMissionControl } from '@/lib/store';
 import { subscribeHeartbeats, getAgentStatus, getAgentStatusLabel } from '@/lib/dispatch';
 import type { Agent, AgentStatus, OpenClawSession } from '@/lib/types';

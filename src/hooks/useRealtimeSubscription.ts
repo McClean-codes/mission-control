@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { supabase } from '@/lib/db';
+import { supabase } from '@/lib/db/supabase/client';
 
 type RealtimeCallback = (payload: any) => void;
 
