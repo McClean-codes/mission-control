@@ -96,7 +96,10 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
 
     const loadCheckpoints = async () => {
       try {
-        const res = await fetch('/api/checkpoints?status=active');
+        const url = workspaceId
+          ? `/api/checkpoints?status=active&workspace_id=${workspaceId}`
+          : '/api/checkpoints?status=active&workspace_id=default';
+        const res = await fetch(url);
         if (res.ok) {
           const data: Checkpoint[] = await res.json();
           const map: Record<string, Checkpoint> = {};
@@ -129,7 +132,7 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [workspaceId]);
 
   useEffect(() => {
     // Only load/subscribe to heartbeats if dispatch is enabled
@@ -140,7 +143,10 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
     // Initial load of existing heartbeats
     const loadHeartbeats = async () => {
       try {
-        const res = await fetch('/api/heartbeats');
+        const url = workspaceId 
+          ? `/api/heartbeats?workspace_id=${workspaceId}`
+          : '/api/heartbeats?workspace_id=default';
+        const res = await fetch(url);
         if (res.ok) {
           const data: Heartbeat[] = await res.json();
           const map: Record<string, Heartbeat> = {};
@@ -167,7 +173,7 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [workspaceId]);
 
   const handleConnectToOpenClaw = async (agent: Agent, e: React.MouseEvent) => {
     e.stopPropagation();
