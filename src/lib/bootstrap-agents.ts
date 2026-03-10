@@ -1,29 +1,87 @@
 import { supabase } from '@/lib/db';
-import { getMissionControlUrl } from '@/lib/config';
 
-const AGENT_DEFS = [
-  { name: 'Builder Agent', role: 'builder', emoji: '🛠️' },
-  { name: 'Tester Agent', role: 'tester', emoji: '🧪' },
-  { name: 'Reviewer Agent', role: 'reviewer', emoji: '🔍' },
-  { name: 'Learner Agent', role: 'learner', emoji: '📚' }
+const OUR_AGENTS = [
+  {
+    id: 'sherlock',
+    name: 'Sherlock',
+    role: 'coordinator',
+    avatar_emoji: '🔍',
+    model: 'anthropic/claude-sonnet-4-6',
+    gateway_agent_id: 'sherlock'
+  },
+  {
+    id: 'edison',
+    name: 'Edison',
+    role: 'architect',
+    avatar_emoji: '💡',
+    model: 'anthropic/claude-opus-4-6',
+    gateway_agent_id: 'edison'
+  },
+  {
+    id: 'nikola',
+    name: 'Nikola',
+    role: 'analyst',
+    avatar_emoji: '⚡',
+    model: 'anthropic/claude-sonnet-4-6',
+    gateway_agent_id: 'nikola'
+  },
+  {
+    id: 'newton',
+    name: 'Newton',
+    role: 'developer',
+    avatar_emoji: '🍎',
+    model: 'anthropic/claude-haiku-4-5',
+    gateway_agent_id: 'newton'
+  },
+  {
+    id: 'scout',
+    name: 'Scout',
+    role: 'ops',
+    avatar_emoji: '🐕',
+    model: 'anthropic/claude-haiku-4-5',
+    gateway_agent_id: 'scout'
+  }
 ];
 
-export async function bootstrapCoreAgents(workspaceId: string): Promise<void> {
-  const { count } = await supabase.from('agents').select('*', { count: 'exact', head: true }).eq('workspace_id', workspaceId);
-  if ((count || 0) > 0) return;
+const DEFAULT_WORKFLOW = {
+  id: 'default-workflow',
+  name: 'Default Workflow',
+  stages: [
+    { status: 'inbox', label: 'Inbox', role: null },
+    { status: 'in_progress', label: 'Building', role: 'developer' },
+    { status: 'testing', label: 'Testing', role: 'analyst' },
+    { status: 'review', label: 'Review', role: 'analyst' },
+    { status: 'done', label: 'Done', role: null }
+  ],
+  fail_targets: {
+    testing: 'in_progress',
+    review: 'in_progress'
+  }
+};
 
-  const agents = AGENT_DEFS.map(a => ({
-    id: crypto.randomUUID(),
-    name: a.name,
-    role: a.role,
-    avatar_emoji: a.emoji,
+export async function bootstrapCoreAgents(workspaceId: string): Promise<void> {
+  // Upsert agents (idempotent)
+  const agents = OUR_AGENTS.map(a => ({
+    ...a,
     workspace_id: workspaceId,
     is_master: false,
     status: 'standby',
     source: 'local'
   }));
 
-  await supabase.from('agents').insert(agents);
+  const { error: agentError } = await supabase.from('agents').upsert(agents, { onConflict: 'id' });
+  if (agentError) throw agentError;
+
+  // Upsert default workflow template
+  const workflow = {
+    ...DEFAULT_WORKFLOW,
+    id: `${DEFAULT_WORKFLOW.id}-${workspaceId}`,
+    workspace_id: workspaceId,
+    is_default: true
+  };
+
+  const { error: workflowError } = await supabase.from('workflow_templates').upsert(workflow, { onConflict: 'id' });
+  if (workflowError) throw workflowError;
 }
 
 export async function cloneWorkflowTemplates(targetWorkspaceId: string): Promise<void> {
