@@ -310,5 +310,26 @@ ALTER PUBLICATION supabase_realtime ADD TABLE task_activities;
 ALTER PUBLICATION supabase_realtime ADD TABLE checkpoints;
 
 -- ============================================================================
+-- ROW LEVEL SECURITY (disabled — auth/RLS out of scope for this release)
+-- ============================================================================
+ALTER TABLE workspaces DISABLE ROW LEVEL SECURITY;
+ALTER TABLE agents DISABLE ROW LEVEL SECURITY;
+ALTER TABLE tasks DISABLE ROW LEVEL SECURITY;
+ALTER TABLE events DISABLE ROW LEVEL SECURITY;
+ALTER TABLE task_activities DISABLE ROW LEVEL SECURITY;
+ALTER TABLE checkpoints DISABLE ROW LEVEL SECURITY;
+ALTER TABLE workflow_templates DISABLE ROW LEVEL SECURITY;
+ALTER TABLE planning_questions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE planning_specs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE conversations DISABLE ROW LEVEL SECURITY;
+ALTER TABLE conversation_participants DISABLE ROW LEVEL SECURITY;
+ALTER TABLE messages DISABLE ROW LEVEL SECURITY;
+ALTER TABLE openclaw_sessions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE task_roles DISABLE ROW LEVEL SECURITY;
+ALTER TABLE knowledge_entries DISABLE ROW LEVEL SECURITY;
+ALTER TABLE task_deliverables DISABLE ROW LEVEL SECURITY;
+ALTER TABLE businesses DISABLE ROW LEVEL SECURITY;
+
+-- ============================================================================
 -- SCHEMA MIGRATION COMPLETE
 -- ============================================================================
