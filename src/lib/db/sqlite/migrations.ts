@@ -7,7 +7,10 @@
  * 3. Never runs the same migration twice
  */
 
-import Database from 'better-sqlite3';
+// Dynamic require — avoids TypeScript needing @types/better-sqlite3 at build time
+// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
+const Database: any = require('better-sqlite3');
+
 // Note: bootstrapCoreAgentsRaw is not yet exported from bootstrap-agents
 // TODO: implement SQLite bootstrap in migrations
 // import { bootstrapCoreAgentsRaw } from '@/lib/bootstrap-agents';
@@ -15,7 +18,7 @@ import Database from 'better-sqlite3';
 interface Migration {
   id: string;
   name: string;
-  up: (db: Database.Database) => void;
+  up: (db: any) => void;
 }
 
 // All migrations in order - NEVER remove or reorder existing migrations
@@ -644,7 +647,7 @@ const migrations: Migration[] = [
 /**
  * Run all pending migrations
  */
-export function runMigrations(db: Database.Database): void {
+export function runMigrations(db: any): void {
   // Create migrations tracking table
   db.exec(`
     CREATE TABLE IF NOT EXISTS _migrations (
@@ -696,7 +699,7 @@ export function runMigrations(db: Database.Database): void {
 /**
  * Get migration status
  */
-export function getMigrationStatus(db: Database.Database): { applied: string[]; pending: string[] } {
+export function getMigrationStatus(db: any): { applied: string[]; pending: string[] } {
   const applied = (db.prepare('SELECT id FROM _migrations ORDER BY id').all() as { id: string }[]).map(m => m.id);
   const pending = migrations.filter(m => !applied.includes(m.id)).map(m => m.id);
   return { applied, pending };
