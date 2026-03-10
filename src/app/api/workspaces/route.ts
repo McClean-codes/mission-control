@@ -7,6 +7,47 @@ export async function GET(request: NextRequest) {
   try {
     const { data, error } = await supabase.from('workspaces').select('*').order('name');
     if (error) throw error;
+
+    // If stats=true, fetch task counts and agent counts per workspace
+    const statsMode = request.nextUrl.searchParams.get('stats') === 'true';
+
+    if (statsMode && data) {
+      const enriched = await Promise.all(data.map(async (ws: any) => {
+        const [{ count: agentCount }, { data: tasks }] = await Promise.all([
+          supabase.from('agents').select('*', { count: 'exact', head: true }).eq('workspace_id', ws.id),
+          supabase.from('tasks').select('status').eq('workspace_id', ws.id)
+        ]);
+
+        const statusCounts: Record<string, number> = {
+          pending_dispatch: 0,
+          planning: 0,
+          inbox: 0,
+          assigned: 0,
+          in_progress: 0,
+          testing: 0,
+          review: 0,
+          verification: 0,
+          done: 0,
+          total: 0
+        };
+
+        for (const t of tasks || []) {
+          if ((t as any).status in statusCounts) {
+            statusCounts[(t as any).status]++;
+          }
+          statusCounts.total++;
+        }
+
+        return {
+          ...ws,
+          taskCounts: statusCounts,
+          agentCount: agentCount || 0
+        };
+      }));
+
+      return NextResponse.json(enriched);
+    }
+
     return NextResponse.json(data || []);
   } catch (error) {
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
