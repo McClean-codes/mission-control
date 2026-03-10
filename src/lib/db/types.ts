@@ -269,7 +269,7 @@ export interface WorkflowTemplate {
   updated_at: string;
 }
 
-export type WorkflowTemplateInput = Omit<WorkflowTemplate, 'created_at' | 'updated_at'>;
+export type WorkflowTemplateInput = Omit<WorkflowTemplate, 'id' | 'created_at' | 'updated_at'>;
 
 export interface PlanningQuestion {
   id: string;
@@ -279,7 +279,7 @@ export interface PlanningQuestion {
   created_at: string;
 }
 
-export type PlanningQuestionInput = Omit<PlanningQuestion, 'created_at'>;
+export type PlanningQuestionInput = Omit<PlanningQuestion, 'id' | 'created_at'>;
 
 export interface PlanningSpec {
   id: string;
@@ -299,7 +299,7 @@ export interface KnowledgeEntry {
   updated_at: string;
 }
 
-export type KnowledgeEntryInput = Omit<KnowledgeEntry, 'created_at' | 'updated_at'>;
+export type KnowledgeEntryInput = Omit<KnowledgeEntry, 'id' | 'created_at' | 'updated_at'>;
 
 // Phase 4: Dispatch & Heartbeats (Supabase-only for now)
 export interface DispatchQueue {
