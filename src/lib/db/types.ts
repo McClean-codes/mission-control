@@ -185,7 +185,7 @@ export interface Event {
   created_at: string;
 }
 
-export type EventInput = Omit<Event, 'created_at'>;
+export type EventInput = Omit<Event, 'id' | 'created_at'>;
 
 export interface TaskActivity {
   id: string;
@@ -198,7 +198,7 @@ export interface TaskActivity {
   updated_at: string;
 }
 
-export type TaskActivityInput = Omit<TaskActivity, 'created_at' | 'updated_at'>;
+export type TaskActivityInput = Omit<TaskActivity, 'id' | 'created_at' | 'updated_at'>;
 
 export interface TaskDeliverable {
   id: string;
@@ -211,7 +211,7 @@ export interface TaskDeliverable {
   updated_at: string;
 }
 
-export type TaskDeliverableInput = Omit<TaskDeliverable, 'created_at' | 'updated_at'>;
+export type TaskDeliverableInput = Omit<TaskDeliverable, 'id' | 'created_at' | 'updated_at'>;
 
 export interface Checkpoint {
   agent_id: string;
