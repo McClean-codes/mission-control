@@ -606,6 +606,17 @@ export const supabaseProvider: DbProvider = {
     if (error) throw error;
   },
 
+  async upsertWorkflowTemplate(template: WorkflowTemplate): Promise<WorkflowTemplate> {
+    const { data, error } = await supabaseAdmin
+      .from('workflow_templates')
+      .upsert([template], { onConflict: 'id' })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   // ======== Planning Questions ========
   async getPlanningQuestions(): Promise<PlanningQuestion[]> {
     const { data, error } = await supabaseAdmin
@@ -660,6 +671,17 @@ export const supabaseProvider: DbProvider = {
     if (error) throw error;
   },
 
+  async getPlanningQuestionsByTask(taskId: string): Promise<any[]> {
+    const { data, error } = await supabaseAdmin
+      .from('planning_questions')
+      .select('*')
+      .eq('task_id', taskId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
   // ======== Planning Specs ========
   async getPlanningSpecs(): Promise<PlanningSpec[]> {
     const { data, error } = await supabaseAdmin
@@ -712,6 +734,16 @@ export const supabaseProvider: DbProvider = {
       .eq('id', id);
 
     if (error) throw error;
+  },
+
+  async getPlanningSpecsByTask(taskId: string): Promise<any[]> {
+    const { data, error } = await supabaseAdmin
+      .from('planning_specs')
+      .select('*')
+      .eq('task_id', taskId);
+
+    if (error) throw error;
+    return data || [];
   },
 
   // ======== Knowledge Entries ========
