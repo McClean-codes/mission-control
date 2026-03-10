@@ -1,22 +1,18 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
+import { db } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
     const workspaceId = request.nextUrl.searchParams.get('workspace_id');
-    const status = request.nextUrl.searchParams.get('status');
     const limit = parseInt(request.nextUrl.searchParams.get('limit') || '100');
 
-    let query = supabase.from('events').select('*').order('created_at', { ascending: false }).limit(limit);
+    if (!workspaceId) {
+      return NextResponse.json({ error: 'workspace_id required' }, { status: 400 });
+    }
 
-    if (workspaceId) query = query.eq('workspace_id', workspaceId);
-    if (status) query = query.eq('status', status);
-
-    const { data, error } = await query;
-    if (error) throw error;
-
-    return NextResponse.json(data || []);
+    const events = await db.getEvents(workspaceId, limit);
+    return NextResponse.json(events);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch events' }, { status: 500 });
   }
@@ -25,20 +21,22 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { workspace_id, event_type, data, status } = body;
+    const { workspace_id, type, message, metadata, agent_id, task_id } = body;
 
-    if (!workspace_id || !event_type) {
-      return NextResponse.json({ error: 'workspace_id and event_type required' }, { status: 400 });
+    if (!workspace_id || !type) {
+      return NextResponse.json({ error: 'workspace_id and type required' }, { status: 400 });
     }
 
-    const { data: result, error } = await supabase
-      .from('events')
-      .insert({ workspace_id, event_type, data: data || {}, status: status || 'active' })
-      .select()
-      .single();
+    const event = await db.createEvent({
+      workspace_id,
+      type,
+      message,
+      metadata: metadata || {},
+      agent_id: agent_id || undefined,
+      task_id: task_id || undefined,
+    });
 
-    if (error) throw error;
-    return NextResponse.json(result, { status: 201 });
+    return NextResponse.json(event, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to create event' }, { status: 500 });
   }
@@ -47,21 +45,14 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, status } = body;
+    const { id, ...updates } = body;
 
-    if (!id || !status) {
-      return NextResponse.json({ error: 'id and status required' }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ error: 'id required' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
-      .from('events')
-      .update({ status })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return NextResponse.json(data);
+    const event = await db.updateEvent(id, updates);
+    return NextResponse.json(event);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update event' }, { status: 500 });
   }
@@ -75,9 +66,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'id required' }, { status: 400 });
     }
 
-    const { error } = await supabase.from('events').delete().eq('id', id);
-    if (error) throw error;
-
+    await db.deleteEvent(id);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to delete event' }, { status: 500 });

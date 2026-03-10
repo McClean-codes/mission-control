@@ -53,24 +53,23 @@ Routes that are Phase 4 extensions (dispatch, heartbeats) are marked as `dispatc
 
 ### GET /api/checkpoints
 - **GET:** List all checkpoints
-- `supabase.from('checkpoints').select('*')` → `db.getCheckpoints(workspaceId)` ✅
+- `supabase.from('checkpoints').select('*')` → `db.getCheckpoints(workspaceId)` ✅ MIGRATED ✅
 
 ### POST /api/checkpoints
 - **POST:** Create checkpoint
-- `supabase.from('checkpoints').insert({...})` → `db.createCheckpoint(checkpoint)` ✅
+- `supabase.from('checkpoints').insert({...})` → `db.createCheckpoint(checkpoint)` ✅ MIGRATED ✅
 
 ### GET /api/checkpoints/[id]
 - **GET:** Fetch single checkpoint
-- `supabase.from('checkpoints').select('*').eq('id', id).single()` → **NEEDS FIX** current method uses `agent_id` as key, not checkpoint `id`
-  - Gap: Checkpoint table has composite behavior (can be queried by `agent_id` or `checkpoint_id`)
+- `supabase.from('checkpoints').select('*').eq('id', id).single()` → `db.getCheckpointById(id)` ✅ MIGRATED ✅
 
 ### PATCH /api/checkpoints/[id]
 - **PATCH:** Update checkpoint
-- `supabase.from('checkpoints').update(...).eq('id', id)` → **NEEDS FIX** see above
+- `supabase.from('checkpoints').update(...).eq('id', id)` → `db.updateCheckpointById(id, updates)` ✅ MIGRATED ✅
 
 ### DELETE /api/checkpoints/[id]
 - **DELETE:** Delete checkpoint
-- `supabase.from('checkpoints').delete().eq('id', id)` → **NEEDS FIX** see above
+- `supabase.from('checkpoints').delete().eq('id', id)` → `db.deleteCheckpointById(id)` ✅ MIGRATED ✅
 
 ---
 
@@ -88,19 +87,19 @@ Routes that are Phase 4 extensions (dispatch, heartbeats) are marked as `dispatc
 
 ### GET /api/events
 - **GET:** List all events
-- `supabase.from('events').select('*')` → `db.getEvents(workspaceId)` ✅
+- `supabase.from('events').select('*')` → `db.getEvents(workspaceId)` ✅ MIGRATED ✅
 
 ### POST /api/events
 - **POST:** Create event
-- `supabase.from('events').insert({...})` → `db.createEvent(event)` ✅
+- `supabase.from('events').insert({...})` → `db.createEvent(event)` ✅ MIGRATED ✅
 
 ### PATCH /api/events
 - **PATCH:** Update event
-- `supabase.from('events').update(...).eq('id', id)` → **NEEDS NEW METHOD** `db.updateEvent(id, data)` (currently no update)
+- `supabase.from('events').update(...).eq('id', id)` → `db.updateEvent(id, data)` ✅ MIGRATED ✅
 
 ### DELETE /api/events/[id]
 - **DELETE:** Delete event
-- `supabase.from('events').delete().eq('id', id)` → ❌ DbProvider has `deleteEvent()` but typed signature is incomplete
+- `supabase.from('events').delete().eq('id', id)` → `db.deleteEvent(id)` ✅ MIGRATED ✅
 
 ### GET /api/events/stream
 - **DB:** none — Server-Sent Events stream endpoint, does not make direct DB calls
@@ -172,27 +171,27 @@ Routes that are Phase 4 extensions (dispatch, heartbeats) are marked as `dispatc
 
 ### GET /api/tasks/[id]/activities
 - **GET:** List task activities
-- `supabase.from('task_activities').select('*').eq('task_id', taskId)` → `db.getActivities(taskId)` ✅
+- `supabase.from('task_activities').select('*').eq('task_id', taskId)` → `db.getActivities(taskId)` ✅ MIGRATED ✅
 
 ### POST /api/tasks/[id]/activities
 - **POST:** Create activity
-- `supabase.from('task_activities').insert({...})` → `db.createActivity(activity)` ✅
+- `supabase.from('task_activities').insert({...})` → `db.createActivity(activity)` ✅ MIGRATED ✅
 
 ### GET /api/tasks/[id]/deliverables
 - **GET:** List task deliverables
-- `supabase.from('task_deliverables').select('*').eq('task_id', taskId)` → `db.getDeliverables(taskId)` ✅
+- `supabase.from('task_deliverables').select('*').eq('task_id', taskId)` → `db.getDeliverables(taskId)` ✅ MIGRATED ✅
 
 ### POST /api/tasks/[id]/deliverables
 - **POST:** Create deliverable
-- `supabase.from('task_deliverables').insert({...})` → `db.createDeliverable(deliverable)` ✅
+- `supabase.from('task_deliverables').insert({...})` → `db.createDeliverable(deliverable)` ✅ MIGRATED ✅
 
 ### PATCH /api/tasks/[id]/deliverables/[delId]
 - **PATCH:** Update deliverable
-- `supabase.from('task_deliverables').update(...).eq('id', delId)` → `db.updateDeliverable(id, data)` ✅
+- `supabase.from('task_deliverables').update(...).eq('id', delId)` → `db.updateDeliverable(id, data)` ✅ MIGRATED ✅
 
 ### DELETE /api/tasks/[id]/deliverables/[delId]
 - **DELETE:** Delete deliverable
-- `supabase.from('task_deliverables').delete().eq('id', delId)` → `db.deleteDeliverable(id)` ✅
+- `supabase.from('task_deliverables').delete().eq('id', delId)` → `db.deleteDeliverable(id)` ✅ MIGRATED ✅
 
 ### GET /api/tasks/[id]/fail
 - **POST:** Mark task as failed
@@ -278,27 +277,27 @@ Routes that are Phase 4 extensions (dispatch, heartbeats) are marked as `dispatc
 
 ### GET /api/workspaces/[id]/knowledge
 - **GET:** List knowledge entries
-- `supabase.from('knowledge_entries').select('*')` → `db.getKnowledgeEntries()` ✅
+- `supabase.from('knowledge_entries').select('*')` → `db.getKnowledgeEntries()` ✅ MIGRATED ✅
 
 ### POST /api/workspaces/[id]/knowledge
 - **POST:** Create knowledge entry
-- `supabase.from('knowledge_entries').insert({...})` → `db.createKnowledgeEntry(entry)` ✅
+- `supabase.from('knowledge_entries').insert({...})` → `db.createKnowledgeEntry(entry)` ✅ MIGRATED ✅
 
 ### PATCH /api/workspaces/[id]/knowledge/[entryId]
 - **PATCH:** Update knowledge entry
-- `supabase.from('knowledge_entries').update(...).eq('id', entryId)` → `db.updateKnowledgeEntry(id, data)` ✅
+- `supabase.from('knowledge_entries').update(...).eq('id', entryId)` → `db.updateKnowledgeEntry(id, data)` ✅ MIGRATED ✅
 
 ### GET /api/workspaces/[id]/workflows
 - **GET:** List workflow templates
-- `supabase.from('workflow_templates').select('*')` → `db.getWorkflowTemplates(workspaceId)` ✅
+- `supabase.from('workflow_templates').select('*')` → `db.getWorkflowTemplates(workspaceId)` ✅ MIGRATED ✅
 
 ### POST /api/workspaces/[id]/workflows
 - **POST:** Create workflow template
-- `supabase.from('workflow_templates').insert({...})` → `db.createWorkflowTemplate(template)` ✅
+- `supabase.from('workflow_templates').insert({...})` → `db.createWorkflowTemplate(template)` ✅ MIGRATED ✅
 
 ### PATCH /api/workspaces/[id]/workflows/[templateId]
 - **PATCH:** Update workflow template
-- `supabase.from('workflow_templates').update(...).eq('id', templateId)` → `db.updateWorkflowTemplate(id, data)` ✅
+- `supabase.from('workflow_templates').update(...).eq('id', templateId)` → `db.updateWorkflowTemplate(id, data)` ✅ MIGRATED ✅
 
 ---
 

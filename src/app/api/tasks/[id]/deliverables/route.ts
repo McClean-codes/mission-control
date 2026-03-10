@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
+import { db } from '@/lib/db';
 
 type Params = {
   id: string;
@@ -9,17 +9,9 @@ type Params = {
 export async function GET(request: NextRequest, { params }: { params: Promise<Params> }) {
   try {
     const { id } = await params;
-    const limit = parseInt(request.nextUrl.searchParams.get('limit') || '100');
 
-    const { data, error } = await supabase
-      .from('task_deliverables')
-      .select('*')
-      .eq('task_id', id)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) throw error;
-    return NextResponse.json(data || []);
+    const deliverables = await db.getDeliverables(id);
+    return NextResponse.json(deliverables);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch deliverables' }, { status: 500 });
   }
@@ -29,28 +21,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<P
   try {
     const { id } = await params;
     const body = await request.json();
-    const { title, description, status, url } = body;
+    const { name, description, status, url } = body;
 
-    if (!title) {
-      return NextResponse.json({ error: 'title required' }, { status: 400 });
+    if (!name) {
+      return NextResponse.json({ error: 'name required' }, { status: 400 });
     }
 
-    const deliverableId = crypto.randomUUID();
-    const { data, error } = await supabase
-      .from('task_deliverables')
-      .insert({
-        id: deliverableId,
-        task_id: id,
-        title,
-        description: description || null,
-        status: status || 'pending',
-        url: url || null,
-      })
-      .select()
-      .single();
+    const deliverable = await db.createDeliverable({
+      task_id: id,
+      name,
+      description: description || undefined,
+      status: (status || 'pending') as 'pending' | 'in_progress' | 'completed' | 'rejected',
+      url: url || undefined,
+    });
 
-    if (error) throw error;
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json(deliverable, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to create deliverable' }, { status: 500 });
   }
@@ -59,27 +44,31 @@ export async function POST(request: NextRequest, { params }: { params: Promise<P
 export async function PATCH(request: NextRequest, { params }: { params: Promise<Params> }) {
   try {
     const body = await request.json();
-    const { id: deliverableId, status, url, description } = body;
+    const { id: deliverableId, ...updates } = body;
 
     if (!deliverableId) {
       return NextResponse.json({ error: 'id required' }, { status: 400 });
     }
 
-    const updates: any = {};
-    if (status) updates.status = status;
-    if (url) updates.url = url;
-    if (description !== undefined) updates.description = description;
-
-    const { data, error } = await supabase
-      .from('task_deliverables')
-      .update(updates)
-      .eq('id', deliverableId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return NextResponse.json(data);
+    const deliverable = await db.updateDeliverable(deliverableId, updates);
+    return NextResponse.json(deliverable);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update deliverable' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { id } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'id required' }, { status: 400 });
+    }
+
+    await db.deleteDeliverable(id);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to delete deliverable' }, { status: 500 });
   }
 }
