@@ -367,6 +367,38 @@ export const supabaseProvider: DbProvider = {
     if (error) throw error;
   },
 
+  async getCheckpointById(id: string): Promise<Checkpoint | undefined> {
+    const { data, error } = await supabaseAdmin
+      .from('checkpoints')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data || undefined;
+  },
+
+  async updateCheckpointById(id: string, updates: Partial<Checkpoint>): Promise<Checkpoint> {
+    const { data, error } = await supabaseAdmin
+      .from('checkpoints')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteCheckpointById(id: string): Promise<void> {
+    const { error } = await supabaseAdmin
+      .from('checkpoints')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
   // ======== Workspaces ========
   async getWorkspaces(): Promise<Workspace[]> {
     const { data, error } = await supabaseAdmin

@@ -46,9 +46,12 @@ export interface DbProvider {
   // Checkpoints
   getCheckpoints(workspaceId: string, status?: string): Promise<Checkpoint[]>;
   getCheckpoint(agentId: string): Promise<Checkpoint | undefined>;
+  getCheckpointById(id: string): Promise<Checkpoint | undefined>;
   createCheckpoint(checkpoint: CheckpointInput): Promise<Checkpoint>;
   updateCheckpoint(agentId: string, updates: Partial<Checkpoint>): Promise<Checkpoint>;
+  updateCheckpointById(id: string, updates: Partial<Checkpoint>): Promise<Checkpoint>;
   deleteCheckpoint(agentId: string): Promise<void>;
+  deleteCheckpointById(id: string): Promise<void>;
 
   // Workspaces
   getWorkspaces(): Promise<Workspace[]>;
