@@ -163,6 +163,7 @@ export interface Task {
   planning_agents?: Record<string, any>;
   planning_dispatch_error?: string;
   status_reason?: string;
+  images?: string; // JSON array of TaskImage objects
   created_at: string;
   updated_at: string;
 }
