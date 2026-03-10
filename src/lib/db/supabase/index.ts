@@ -63,6 +63,27 @@ export const supabaseProvider: DbProvider = {
     if (error) throw error;
   },
 
+  async getAgentsExcluding(workspaceId: string): Promise<Agent[]> {
+    const { data, error } = await supabaseAdmin
+      .from('agents')
+      .select('*')
+      .neq('workspace_id', workspaceId)
+      .order('name');
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async upsertAgents(agents: Agent[]): Promise<Agent[]> {
+    const { data, error } = await supabaseAdmin
+      .from('agents')
+      .upsert(agents, { onConflict: 'id' })
+      .select();
+
+    if (error) throw error;
+    return data || [];
+  },
+
   // ======== Tasks ========
   async getTasks(workspaceId: string, filters?: TaskFilters): Promise<Task[]> {
     let query = supabaseAdmin
@@ -150,6 +171,18 @@ export const supabaseProvider: DbProvider = {
     const { data, error } = await supabaseAdmin
       .from('events')
       .insert([event])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async updateEvent(id: string, updates: Partial<Event>): Promise<Event> {
+    const { data, error } = await supabaseAdmin
+      .from('events')
+      .update(updates)
+      .eq('id', id)
       .select()
       .single();
 
@@ -697,6 +730,104 @@ export const supabaseProvider: DbProvider = {
   async deleteKnowledgeEntry(id: string): Promise<void> {
     const { error } = await supabaseAdmin
       .from('knowledge_entries')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  // ======== OpenClaw Sessions ========
+  async getOpenClawSession(id: string): Promise<Record<string, any> | undefined> {
+    const { data, error } = await supabaseAdmin
+      .from('openclaw_sessions')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data || undefined;
+  },
+
+  async createOpenClawSession(session: Record<string, any>): Promise<Record<string, any>> {
+    const { data, error } = await supabaseAdmin
+      .from('openclaw_sessions')
+      .insert([session])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async updateOpenClawSession(id: string, updates: Record<string, any>): Promise<Record<string, any>> {
+    const { data, error } = await supabaseAdmin
+      .from('openclaw_sessions')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteOpenClawSession(id: string): Promise<void> {
+    const { error } = await supabaseAdmin
+      .from('openclaw_sessions')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  // ======== Task Roles ========
+  async getTaskRoles(taskId: string): Promise<Record<string, any>[]> {
+    const { data, error } = await supabaseAdmin
+      .from('task_roles')
+      .select('*')
+      .eq('task_id', taskId);
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getTaskRole(id: string): Promise<Record<string, any> | undefined> {
+    const { data, error } = await supabaseAdmin
+      .from('task_roles')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data || undefined;
+  },
+
+  async createTaskRole(role: Record<string, any>): Promise<Record<string, any>> {
+    const { data, error } = await supabaseAdmin
+      .from('task_roles')
+      .insert([role])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async updateTaskRole(id: string, updates: Record<string, any>): Promise<Record<string, any>> {
+    const { data, error } = await supabaseAdmin
+      .from('task_roles')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteTaskRole(id: string): Promise<void> {
+    const { error } = await supabaseAdmin
+      .from('task_roles')
       .delete()
       .eq('id', id);
 

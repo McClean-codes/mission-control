@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
+import { db } from '@/lib/db';
 
 type Params = {
   id: string;
@@ -9,14 +9,13 @@ type Params = {
 export async function GET(request: NextRequest, { params }: { params: Promise<Params> }) {
   try {
     const { id } = await params;
-    const { data, error } = await supabase.from('tasks').select('*').eq('id', id).single();
+    const task = await db.getTask(id);
 
-    if (error?.code === 'PGRST116') {
+    if (!task) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
-    if (error) throw error;
 
-    return NextResponse.json(data);
+    return NextResponse.json(task);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch task' }, { status: 500 });
   }
@@ -26,27 +25,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   try {
     const { id } = await params;
     const body = await request.json();
-    const { status, assigned_to, description, title } = body;
 
     const updates: any = {};
-    if (status) updates.status = status;
-    if (assigned_to) updates.assigned_to = assigned_to;
-    if (description !== undefined) updates.description = description;
-    if (title) updates.title = title;
+    if (body.status) updates.status = body.status;
+    if (body.assigned_agent_id) updates.assigned_agent_id = body.assigned_agent_id;
+    if (body.description !== undefined) updates.description = body.description;
+    if (body.title) updates.title = body.title;
 
-    const { data, error } = await supabase
-      .from('tasks')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error?.code === 'PGRST116') {
+    const updated = await db.updateTask(id, updates);
+    if (!updated) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
-    if (error) throw error;
 
-    return NextResponse.json(data);
+    return NextResponse.json(updated);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update task' }, { status: 500 });
   }
@@ -55,9 +46,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 export async function DELETE(request: NextRequest, { params }: { params: Promise<Params> }) {
   try {
     const { id } = await params;
-    const { error } = await supabase.from('tasks').delete().eq('id', id);
-
-    if (error) throw error;
+    await db.deleteTask(id);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to delete task' }, { status: 500 });

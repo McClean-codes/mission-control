@@ -1,21 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
+import { db } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const { data, error } = await supabase.from('workspaces').select('*').order('name');
-    if (error) throw error;
+    const workspaces = await db.getWorkspaces();
 
     // If stats=true, fetch task counts and agent counts per workspace
     const statsMode = request.nextUrl.searchParams.get('stats') === 'true';
 
-    if (statsMode && data) {
-      const enriched = await Promise.all(data.map(async (ws: any) => {
-        const [{ count: agentCount }, { data: tasks }] = await Promise.all([
-          supabase.from('agents').select('*', { count: 'exact', head: true }).eq('workspace_id', ws.id),
-          supabase.from('tasks').select('status').eq('workspace_id', ws.id)
+    if (statsMode && workspaces) {
+      const enriched = await Promise.all(workspaces.map(async (ws: any) => {
+        const [agents, tasks] = await Promise.all([
+          db.getAgents(ws.id),
+          db.getTasks(ws.id)
         ]);
 
         const statusCounts: Record<string, number> = {
@@ -41,14 +40,14 @@ export async function GET(request: NextRequest) {
         return {
           ...ws,
           taskCounts: statusCounts,
-          agentCount: agentCount || 0
+          agentCount: agents?.length || 0
         };
       }));
 
       return NextResponse.json(enriched);
     }
 
-    return NextResponse.json(data || []);
+    return NextResponse.json(workspaces || []);
   } catch (error) {
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }
@@ -60,15 +59,17 @@ export async function POST(request: NextRequest) {
     const { name, description, icon } = body;
     if (!name) return NextResponse.json({ error: 'Name required' }, { status: 400 });
 
-    const id = crypto.randomUUID();
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
-    const { data, error } = await supabase.from('workspaces').insert({
-      id, name, slug, description: description || null, icon: icon || '📁'
-    }).select().single();
+    const workspace = await db.createWorkspace({
+      id: crypto.randomUUID(),
+      name,
+      slug,
+      description: description || undefined,
+      icon: icon || '📁'
+    });
 
-    if (error) throw error;
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json(workspace, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }

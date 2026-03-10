@@ -1,25 +1,20 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
+import { db } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
-    const workspaceId = request.nextUrl.searchParams.get('workspace_id');
+    const workspaceId = request.nextUrl.searchParams.get('workspace_id') || 'default';
     const status = request.nextUrl.searchParams.get('status');
-    const assigned_to = request.nextUrl.searchParams.get('assigned_to');
-    const limit = parseInt(request.nextUrl.searchParams.get('limit') || '100');
-    const offset = parseInt(request.nextUrl.searchParams.get('offset') || '0');
+    const assigned_agent_id = request.nextUrl.searchParams.get('assigned_to');
 
-    let query = supabase.from('tasks').select('*').order('created_at', { ascending: false }).range(offset, offset + limit - 1);
+    const filters = {
+      ...(status && { status }),
+      ...(assigned_agent_id && { assigned_agent_id }),
+    };
 
-    if (workspaceId) query = query.eq('workspace_id', workspaceId);
-    if (status) query = query.eq('status', status);
-    if (assigned_to) query = query.eq('assigned_to', assigned_to);
-
-    const { data, error } = await query;
-    if (error) throw error;
-
-    return NextResponse.json(data || []);
+    const tasks = await db.getTasks(workspaceId, filters);
+    return NextResponse.json(tasks || []);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 });
   }
@@ -28,75 +23,38 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { workspace_id, title, description, status, assigned_to, workflow_template_id } = body;
+    const { workspace_id, title, description, status, assigned_agent_id, workflow_template_id } = body;
 
     if (!workspace_id || !title) {
       return NextResponse.json({ error: 'workspace_id and title required' }, { status: 400 });
     }
 
-    const id = crypto.randomUUID();
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert({
-        id,
-        workspace_id,
-        title,
-        description: description || null,
-        status: status || 'inbox',
-        assigned_to: assigned_to || null,
-        workflow_template_id: workflow_template_id || null,
-      })
-      .select()
-      .single();
+    const task = await db.createTask({
+      id: crypto.randomUUID(),
+      workspace_id,
+      title,
+      description: description || undefined,
+      status: status || 'inbox',
+      priority: 'normal',
+      assigned_agent_id: assigned_agent_id || undefined,
+      workflow_template_id: workflow_template_id || undefined,
+      business_id: 'default',
+      planning_complete: false,
+    });
 
-    if (error) throw error;
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json(task, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to create task' }, { status: 500 });
   }
 }
 
-export async function PATCH(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { id, status, assigned_to, description, title } = body;
-
-    if (!id) {
-      return NextResponse.json({ error: 'id required' }, { status: 400 });
-    }
-
-    const updates: any = {};
-    if (status) updates.status = status;
-    if (assigned_to) updates.assigned_to = assigned_to;
-    if (description !== undefined) updates.description = description;
-    if (title) updates.title = title;
-
-    const { data, error } = await supabase
-      .from('tasks')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return NextResponse.json(data);
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to update task' }, { status: 500 });
-  }
-}
-
 export async function DELETE(request: NextRequest) {
   try {
-    const { id } = await request.json();
-
-    if (!id) {
-      return NextResponse.json({ error: 'id required' }, { status: 400 });
-    }
-
-    const { error } = await supabase.from('tasks').delete().eq('id', id);
-    if (error) throw error;
-
-    return NextResponse.json({ success: true });
+    const taskId = request.nextUrl.searchParams.get('id');
+    if (!taskId) return NextResponse.json({ error: 'Task ID required' }, { status: 400 });
+    
+    await db.deleteTask(taskId);
+    return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to delete task' }, { status: 500 });
   }
