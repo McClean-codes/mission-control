@@ -9,6 +9,14 @@ import { DiscoverAgentsModal } from './DiscoverAgentsModal';
 
 type FilterTab = 'all' | 'working' | 'standby';
 
+interface Checkpoint {
+  id: string;
+  agent_id: string;
+  status: string;
+  summary?: string;
+  updated_at: string;
+}
+
 interface AgentsSidebarProps {
   workspaceId?: string;
   mobileMode?: boolean;
@@ -24,6 +32,7 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
   const [connectingAgentId, setConnectingAgentId] = useState<string | null>(null);
   const [activeSubAgents, setActiveSubAgents] = useState(0);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [checkpoints, setCheckpoints] = useState<Record<string, Checkpoint>>({});
 
   const effectiveMinimized = mobileMode ? false : isMinimized;
   const toggleMinimize = () => setIsMinimized(!isMinimized);
@@ -65,6 +74,28 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
 
     loadSubAgentCount();
     const interval = setInterval(loadSubAgentCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const loadCheckpoints = async () => {
+      try {
+        const res = await fetch('/api/checkpoints?status=active');
+        if (res.ok) {
+          const data: Checkpoint[] = await res.json();
+          const map: Record<string, Checkpoint> = {};
+          for (const cp of data) {
+            map[cp.agent_id] = cp;
+          }
+          setCheckpoints(map);
+        }
+      } catch (error) {
+        console.error('Failed to load checkpoints:', error);
+      }
+    };
+
+    loadCheckpoints();
+    const interval = setInterval(loadCheckpoints, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -225,6 +256,11 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
                       </span>
                     )}
                   </div>
+                  {checkpoints[agent.id]?.summary && (
+                    <div className="text-xs text-mc-text-secondary truncate italic mt-0.5">
+                      {checkpoints[agent.id].summary}
+                    </div>
+                  )}
                 </div>
 
                 <span className={`text-xs px-2 py-0.5 rounded uppercase ${getStatusBadge(agent.status)}`}>{agent.status}</span>
