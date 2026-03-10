@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
+import { db } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const workspaceId = request.nextUrl.searchParams.get('workspace_id');
-    let query = supabase.from('agents').select('*').order('is_master', { ascending: false });
-    if (workspaceId) query = query.eq('workspace_id', workspaceId);
-
-    const { data, error } = await query;
-    if (error) throw error;
-    return NextResponse.json(data || []);
+    const workspaceId = request.nextUrl.searchParams.get('workspace_id') || 'default';
+    const agents = await db.getAgents(workspaceId);
+    return NextResponse.json(agents || []);
   } catch (error) {
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }
@@ -22,16 +18,18 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     if (!body.name || !body.role) return NextResponse.json({ error: 'Name and role required' }, { status: 400 });
 
-    const { data, error } = await supabase.from('agents').insert({
+    const agent = await db.createAgent({
       id: crypto.randomUUID(),
       name: body.name,
       role: body.role,
+      avatar_emoji: body.avatar_emoji || '🤖',
+      status: 'standby',
+      is_master: body.is_master || false,
       workspace_id: body.workspace_id || 'default',
-      is_master: body.is_master || false
-    }).select().single();
+      source: 'manual'
+    });
 
-    if (error) throw error;
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json(agent, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }

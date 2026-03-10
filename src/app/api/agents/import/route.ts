@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
+import { db } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,29 +11,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'workspace_id and agent_ids array required' }, { status: 400 });
     }
 
-    // Fetch the agents to import
-    const { data: agentsToImport, error: fetchError } = await supabase
-      .from('agents')
-      .select('*')
-      .in('id', agent_ids);
+    // Get available agents and filter by IDs
+    const availableAgents = await db.getAgentsExcluding(workspace_id);
+    const agentsToImport = availableAgents.filter(a => agent_ids.includes(a.id));
 
-    if (fetchError) throw fetchError;
-
-    // Insert imported agents into the workspace (with new IDs to avoid conflicts)
-    const imported = (agentsToImport || []).map((agent: any) => ({
+    // Create imported agents in the target workspace
+    const imported = agentsToImport.map((agent) => ({
       id: `${agent.id}-imported-${Date.now()}`,
       ...agent,
       workspace_id: workspace_id,
       source: 'imported',
     }));
 
-    const { data, error } = await supabase
-      .from('agents')
-      .insert(imported)
-      .select();
-
-    if (error) throw error;
-    return NextResponse.json(data, { status: 201 });
+    const created = await Promise.all(imported.map(a => db.createAgent(a)));
+    return NextResponse.json(created, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to import agents' }, { status: 500 });
   }

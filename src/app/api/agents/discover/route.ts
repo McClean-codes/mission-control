@@ -1,24 +1,24 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
+import { db } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
-    // Fetch all agents from the gateway or discovery service
-    // For now, return all available agents from other workspaces
     const workspaceId = request.nextUrl.searchParams.get('workspace_id') || 'default';
     const q = request.nextUrl.searchParams.get('q') || '';
 
-    let query = supabase.from('agents').select('*').neq('workspace_id', workspaceId);
-
+    const agents = await db.getAgentsExcluding(workspaceId);
+    
+    // Filter by search query if provided
     if (q) {
-      query = query.or(`name.ilike.%${q}%,description.ilike.%${q}%`);
+      const filtered = agents.filter(a => 
+        a.name.toLowerCase().includes(q.toLowerCase()) ||
+        (a.description && a.description.toLowerCase().includes(q.toLowerCase()))
+      );
+      return NextResponse.json(filtered.slice(0, 100));
     }
 
-    const { data, error } = await query.limit(100);
-
-    if (error) throw error;
-    return NextResponse.json(data || []);
+    return NextResponse.json(agents.slice(0, 100));
   } catch (error) {
     return NextResponse.json({ error: 'Failed to discover agents' }, { status: 500 });
   }
