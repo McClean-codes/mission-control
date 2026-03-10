@@ -12,10 +12,10 @@ export function getDb(): DbProvider {
     const mode = process.env.DATABASE_PROVIDER || 'sqlite';
     
     if (mode === 'supabase') {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       _provider = require('./supabase').default as DbProvider;
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       _provider = require('./sqlite/provider').default as DbProvider;
     }
   }

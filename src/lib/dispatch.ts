@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/db';
+import { supabase } from '@/lib/db/supabase/client';
 
 export interface DispatchPayload {
   task_title?: string;

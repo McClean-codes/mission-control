@@ -1,14 +1,17 @@
-import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { schema } from './schema';
 import { runMigrations } from './migrations';
 
+// Dynamic require — avoids TypeScript needing @types/better-sqlite3 at build time
+// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
+const Database: any = require('better-sqlite3');
+
 const DB_PATH = process.env.DATABASE_PATH || path.join(process.cwd(), 'mission-control.db');
 
-let db: Database.Database | null = null;
+let db: any = null;
 
-export function getDb(): Database.Database {
+export function getDb(): any {
   if (!db) {
     const isNewDb = !fs.existsSync(DB_PATH);
     
@@ -48,7 +51,7 @@ export function queryOne<T>(sql: string, params: unknown[] = []): T | undefined 
   return stmt.get(...params) as T | undefined;
 }
 
-export function run(sql: string, params: unknown[] = []): Database.RunResult {
+export function run(sql: string, params: unknown[] = []): any {
   const stmt = getDb().prepare(sql);
   return stmt.run(...params);
 }
