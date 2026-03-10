@@ -13,13 +13,13 @@ export function getDb(): DbProvider {
     
     if (mode === 'supabase') {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      _provider = require('./supabase').default;
+      _provider = require('./supabase').default as DbProvider;
     } else {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      _provider = require('./sqlite/provider').default;
+      _provider = require('./sqlite/provider').default as DbProvider;
     }
   }
-  return _provider;
+  return _provider as DbProvider;
 }
 
 /**

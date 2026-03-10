@@ -8,7 +8,9 @@
  */
 
 import Database from 'better-sqlite3';
-import { bootstrapCoreAgentsRaw } from '@/lib/bootstrap-agents';
+// Note: bootstrapCoreAgentsRaw is not yet exported from bootstrap-agents
+// TODO: implement SQLite bootstrap in migrations
+// import { bootstrapCoreAgentsRaw } from '@/lib/bootstrap-agents';
 
 interface Migration {
   id: string;
@@ -616,8 +618,9 @@ const migrations: Migration[] = [
       console.log('[Migration 013] Strict template is now default with reviewer role');
 
       // 4. Bootstrap 4 core agents for the default workspace
-      const missionControlUrl = process.env.MISSION_CONTROL_URL || 'http://localhost:4000';
-      bootstrapCoreAgentsRaw(db, 'default', missionControlUrl);
+      // TODO: implement SQLite bootstrap in migrations
+      // const missionControlUrl = process.env.MISSION_CONTROL_URL || 'http://localhost:4000';
+      // bootstrapCoreAgentsRaw(db, 'default', missionControlUrl);
 
       console.log('[Migration 013] Fresh start complete');
     }
