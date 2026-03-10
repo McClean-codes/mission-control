@@ -76,17 +76,21 @@ RETURNS TRIGGER AS $$
 BEGIN
   IF NEW.status IN ('claimed', 'completed', 'failed') AND
      (OLD.status IS NULL OR OLD.status != NEW.status) THEN
-    INSERT INTO events (id, workspace_id, event_type, status, data)
+    INSERT INTO events (id, type, agent_id, task_id, message, metadata)
     VALUES (
       gen_random_uuid()::text,
-      NEW.workspace_id,
       'dispatch_' || NEW.status,
-      'active',
+      NEW.agent_id,
+      NEW.task_id,
+      CASE NEW.status
+        WHEN 'claimed' THEN 'Agent claimed task'
+        WHEN 'completed' THEN 'Agent completed task'
+        WHEN 'failed' THEN 'Agent failed: ' || COALESCE(NEW.error, 'unknown')
+      END,
       jsonb_build_object(
         'dispatch_id', NEW.id::text,
-        'task_id', NEW.task_id,
-        'agent_id', NEW.agent_id,
         'action', NEW.action,
+        'result', NEW.result,
         'error', NEW.error
       )
     );
