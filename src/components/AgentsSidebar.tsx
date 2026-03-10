@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Plus, ChevronRight, ChevronLeft, Zap, ZapOff, Loader2, Search } from 'lucide-react';
 import { supabase } from '@/lib/db';
 import { useMissionControl } from '@/lib/store';
+import { subscribeHeartbeats, getAgentStatus, getAgentStatusLabel } from '@/lib/dispatch';
 import type { Agent, AgentStatus, OpenClawSession } from '@/lib/types';
 import { AgentModal } from './AgentModal';
 import { DiscoverAgentsModal } from './DiscoverAgentsModal';
@@ -16,6 +17,13 @@ interface Checkpoint {
   status: string;
   summary?: string;
   updated_at: string;
+}
+
+interface Heartbeat {
+  agent_id: string;
+  last_seen_at: string | null;
+  gateway_version?: string;
+  metadata?: Record<string, any>;
 }
 
 interface AgentsSidebarProps {
@@ -34,6 +42,7 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
   const [activeSubAgents, setActiveSubAgents] = useState(0);
   const [isMinimized, setIsMinimized] = useState(false);
   const [checkpoints, setCheckpoints] = useState<Record<string, Checkpoint>>({});
+  const [heartbeats, setHeartbeats] = useState<Record<string, Heartbeat>>({});
 
   const effectiveMinimized = mobileMode ? false : isMinimized;
   const toggleMinimize = () => setIsMinimized(!isMinimized);
@@ -113,6 +122,20 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
 
     return () => {
       supabase.removeChannel(channel);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Subscribe to agent heartbeats for live status updates
+    const unsubscribe = subscribeHeartbeats((agentId, row) => {
+      setHeartbeats((prev) => ({
+        ...prev,
+        [agentId]: row,
+      }));
+    });
+
+    return () => {
+      unsubscribe();
     };
   }, []);
 
@@ -280,7 +303,20 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
                   )}
                 </div>
 
-                <span className={`text-xs px-2 py-0.5 rounded uppercase ${getStatusBadge(agent.status)}`}>{agent.status}</span>
+                {(() => {
+                  const heartbeat = heartbeats[agent.id];
+                  const heartbeatStatus = getAgentStatus(heartbeat?.last_seen_at || null);
+                  const statusLabel = getAgentStatusLabel(heartbeatStatus);
+                  const badgeClasses = heartbeatStatus === 'online' ? 'bg-green-500/20 text-green-400' : 
+                                      heartbeatStatus === 'stale' ? 'bg-yellow-500/20 text-yellow-400' : 
+                                      'bg-red-500/20 text-red-400';
+                  return (
+                    <span className={`text-xs px-2 py-0.5 rounded flex items-center gap-1 ${badgeClasses}`}>
+                      <span>{statusLabel.emoji}</span>
+                      <span className="uppercase">{statusLabel.text}</span>
+                    </span>
+                  );
+                })()}
               </button>
 
               {!!agent.is_master && (
