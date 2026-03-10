@@ -84,7 +84,7 @@ export default function WorkspacePage() {
         const [agentsRes, tasksRes, eventsRes] = await Promise.all([
           fetch(`/api/agents?workspace_id=${workspaceId}`),
           fetch(`/api/tasks?workspace_id=${workspaceId}`),
-          fetch('/api/events'),
+          fetch(`/api/events?workspace_id=${workspaceId}`),
         ]);
 
         if (agentsRes.ok) setAgents(await agentsRes.json());
@@ -123,7 +123,7 @@ export default function WorkspacePage() {
 
     const eventPoll = setInterval(async () => {
       try {
-        const res = await fetch('/api/events?limit=20');
+        const res = await fetch(`/api/events?limit=20&workspace_id=${workspaceId}`);
         if (res.ok) {
           setEvents(await res.json());
         }
