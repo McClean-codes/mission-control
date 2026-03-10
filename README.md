@@ -105,55 +105,60 @@ By default, your task/project data stays in your own deployment (SQLite + worksp
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (SQLite — Default)
 
-### Prerequisites
-
-- **Node.js** v18+ ([download](https://nodejs.org/))
-- **OpenClaw Gateway** — `npm install -g openclaw`
-- **AI API Key** — Anthropic (recommended), OpenAI, Google, or others via OpenRouter
-
-### Install
+No database setup required. Works out of the box.
 
 ```bash
-# Clone
-git clone https://github.com/crshdn/mission-control.git
+git clone https://github.com/McClean-codes/mission-control.git
 cd mission-control
-
-# Install dependencies
 npm install
-
-# Setup
-cp .env.example .env.local
-```
-
-Edit `.env.local`:
-
-```env
-OPENCLAW_GATEWAY_URL=ws://127.0.0.1:18789
-OPENCLAW_GATEWAY_TOKEN=your-token-here
-```
-
-> **Where to find the token:** Check `~/.openclaw/openclaw.json` under `gateway.token`
-
-### Run
-
-```bash
-# Start OpenClaw (separate terminal)
-openclaw gateway start
-
-# Start Mission Control
+cp .env.local.example .env.local
 npm run dev
 ```
 
-Open **http://localhost:4000** — you're in! 🎉
+Open http://localhost:3000.
 
-### Production
+---
 
-```bash
-npm run build
-npx next start -p 4000
+## 🌐 Supabase Mode (Cloud/Vercel)
+
+For Vercel deployments and multi-agent team features, enable Supabase mode:
+
+1. Create a Supabase project at https://supabase.com
+2. Run migrations: paste `supabase/migrations/001_initial_schema.sql` then `002_dispatch_and_heartbeats.sql` into the Supabase SQL Editor
+3. Set environment variables:
+
+```env
+DATABASE_PROVIDER=supabase
+NEXT_PUBLIC_DATABASE_PROVIDER=supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
+
+4. Deploy to Vercel — set the same env vars in your Vercel project settings.
+
+---
+
+## 🤖 Agent Dispatch (Optional)
+
+For the 5-agent team workflow with real-time dispatch and heartbeat monitoring:
+
+1. Enable the dispatch layer:
+```env
+SUPABASE_AGENT_DISPATCH=true
+NEXT_PUBLIC_SUPABASE_AGENT_DISPATCH=true
+```
+
+2. On the VM running OpenClaw Gateway, configure and start the dispatch watcher:
+```bash
+cp scripts/dispatch-watcher.env.example scripts/.env
+# Edit scripts/.env with your Supabase credentials
+npm run dispatch:watch
+```
+
+Agent cards will show 🟢/🟡/🔴 status based on heartbeats.
 
 ---
 
@@ -240,45 +245,18 @@ Drag tasks between columns or let the system auto-advance them.
 
 ---
 
-## ⚙️ Configuration
-
-### Environment Variables
+## ⚙️ Environment Variables
 
 | Variable | Required | Default | Description |
 |:---------|:--------:|:--------|:------------|
-| `OPENCLAW_GATEWAY_URL` | ✅ | `ws://127.0.0.1:18789` | WebSocket URL to OpenClaw Gateway |
-| `OPENCLAW_GATEWAY_TOKEN` | ✅ | — | Authentication token for OpenClaw |
-| `MC_API_TOKEN` | — | — | API auth token (enables auth middleware) |
-| `WEBHOOK_SECRET` | — | — | HMAC secret for webhook validation |
-| `DATABASE_PATH` | — | `./mission-control.db` | SQLite database location |
-| `WORKSPACE_BASE_PATH` | — | `~/Documents/Shared` | Base directory for workspace files |
-| `PROJECTS_PATH` | — | `~/Documents/Shared/projects` | Directory for project folders |
-
-### Security (Production)
-
-Generate secure tokens:
-
-```bash
-# API authentication token
-openssl rand -hex 32
-
-# Webhook signature secret
-openssl rand -hex 32
-```
-
-Add to `.env.local`:
-
-```env
-MC_API_TOKEN=your-64-char-hex-token
-WEBHOOK_SECRET=your-64-char-hex-token
-```
-
-When `MC_API_TOKEN` is set:
-- External API calls require `Authorization: Bearer <token>`
-- Browser UI works automatically (same-origin requests are allowed)
-- SSE streams accept token as query param
-
-See [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md) for the full production guide.
+| `DATABASE_PROVIDER` | No | `sqlite` | Database mode: `sqlite` or `supabase` |
+| `NEXT_PUBLIC_DATABASE_PROVIDER` | No | `sqlite` | Client-side mode (must match `DATABASE_PROVIDER`) |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase mode | — | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase mode | — | Supabase anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase mode | — | Supabase service role key |
+| `SUPABASE_AGENT_DISPATCH` | No | `false` | Enable server-side dispatch layer |
+| `NEXT_PUBLIC_SUPABASE_AGENT_DISPATCH` | No | `false` | Show dispatch UI in client |
+| `OPENCLAW_GATEWAY_URL` | No | `http://localhost:3377` | OpenClaw Gateway URL |
 
 ---
 
