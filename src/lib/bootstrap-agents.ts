@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { type AgentInput } from '@/lib/db/types';
 
 const OUR_AGENTS = [
   {
@@ -61,7 +62,7 @@ const DEFAULT_WORKFLOW = {
 
 export async function bootstrapCoreAgents(workspaceId: string): Promise<void> {
   // Upsert agents (idempotent)
-  const agents = OUR_AGENTS.map(a => ({
+  const agents: AgentInput[] = OUR_AGENTS.map(a => ({
     ...a,
     workspace_id: workspaceId,
     is_master: false,
@@ -69,7 +70,7 @@ export async function bootstrapCoreAgents(workspaceId: string): Promise<void> {
     source: 'local'
   }));
 
-  await db.upsertAgents(agents);
+  await db.upsertAgents(agents as any);
 
   // Upsert default workflow template
   const workflow = {

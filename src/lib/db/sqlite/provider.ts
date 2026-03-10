@@ -144,6 +144,18 @@ export const sqliteProvider: DbProvider = {
     throw new Error('Checkpoints not supported in SQLite mode');
   },
 
+  async getCheckpointById(id: string): Promise<Checkpoint | undefined> {
+    return undefined;
+  },
+
+  async updateCheckpointById(id: string, updates: Partial<Checkpoint>): Promise<Checkpoint> {
+    throw new Error('Checkpoints not supported in SQLite mode');
+  },
+
+  async deleteCheckpointById(id: string): Promise<void> {
+    throw new Error('Checkpoints not supported in SQLite mode');
+  },
+
   // ======== Workspaces ========
   async getWorkspaces(): Promise<Workspace[]> {
     throw new Error('SQLite getWorkspaces not implemented — migration pending');
@@ -220,6 +232,10 @@ export const sqliteProvider: DbProvider = {
     throw new Error('SQLite updateWorkflowTemplate not implemented — migration pending');
   },
 
+  async upsertWorkflowTemplate(template: WorkflowTemplate): Promise<WorkflowTemplate> {
+    throw new Error('SQLite upsertWorkflowTemplate not implemented — migration pending');
+  },
+
   async deleteWorkflowTemplate(id: string): Promise<void> {
     throw new Error('SQLite deleteWorkflowTemplate not implemented — migration pending');
   },
@@ -227,6 +243,10 @@ export const sqliteProvider: DbProvider = {
   // ======== Planning Questions ========
   async getPlanningQuestions(): Promise<PlanningQuestion[]> {
     throw new Error('SQLite getPlanningQuestions not implemented — migration pending');
+  },
+
+  async getPlanningQuestionsByTask(taskId: string): Promise<any[]> {
+    throw new Error('SQLite getPlanningQuestionsByTask not implemented — migration pending');
   },
 
   async getPlanningQuestion(id: string): Promise<PlanningQuestion | undefined> {
@@ -248,6 +268,10 @@ export const sqliteProvider: DbProvider = {
   // ======== Planning Specs ========
   async getPlanningSpecs(): Promise<PlanningSpec[]> {
     throw new Error('SQLite getPlanningSpecs not implemented — migration pending');
+  },
+
+  async getPlanningSpecsByTask(taskId: string): Promise<any[]> {
+    throw new Error('SQLite getPlanningSpecsByTask not implemented — migration pending');
   },
 
   async getPlanningSpec(id: string): Promise<PlanningSpec | undefined> {

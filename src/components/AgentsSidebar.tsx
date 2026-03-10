@@ -46,6 +46,7 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
 
   const effectiveMinimized = mobileMode ? false : isMinimized;
   const toggleMinimize = () => setIsMinimized(!isMinimized);
+  const isDispatchEnabled = process.env.NEXT_PUBLIC_SUPABASE_AGENT_DISPATCH === 'true';
 
   const loadOpenClawSessions = useCallback(async () => {
     for (const agent of agents) {
@@ -88,6 +89,11 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
   }, []);
 
   useEffect(() => {
+    // Only load/subscribe to checkpoints if in Supabase mode
+    if (process.env.NEXT_PUBLIC_DATABASE_PROVIDER !== 'supabase') {
+      return;
+    }
+
     const loadCheckpoints = async () => {
       try {
         const res = await fetch('/api/checkpoints?status=active');
@@ -126,6 +132,11 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
   }, []);
 
   useEffect(() => {
+    // Only load/subscribe to heartbeats if dispatch is enabled
+    if (process.env.NEXT_PUBLIC_SUPABASE_AGENT_DISPATCH !== 'true') {
+      return;
+    }
+
     // Initial load of existing heartbeats
     const loadHeartbeats = async () => {
       try {
@@ -322,7 +333,7 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
                   )}
                 </div>
 
-                {(() => {
+                {isDispatchEnabled && (() => {
                   const heartbeat = heartbeats[agent.id];
                   const heartbeatStatus = getAgentStatus(heartbeat?.last_seen_at || null);
                   const statusLabel = getAgentStatusLabel(heartbeatStatus);
@@ -338,7 +349,7 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
                 })()}
               </button>
 
-              {!!agent.is_master && (
+              {!!agent.is_master && isDispatchEnabled && (
                 <div className="px-2 pb-2">
                   <button
                     onClick={(e) => handleConnectToOpenClaw(agent, e)}

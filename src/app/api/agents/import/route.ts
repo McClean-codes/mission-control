@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
 
     // Create imported agents in the target workspace
     const imported = agentsToImport.map((agent) => ({
-      id: `${agent.id}-imported-${Date.now()}`,
       ...agent,
+      id: `${agent.id}-imported-${Date.now()}`,
       workspace_id: workspace_id,
       source: 'imported',
     }));

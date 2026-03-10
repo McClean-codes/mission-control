@@ -185,7 +185,7 @@ export interface Event {
   created_at: string;
 }
 
-export type EventInput = Omit<Event, 'created_at'>;
+export type EventInput = Omit<Event, 'id' | 'created_at'>;
 
 export interface TaskActivity {
   id: string;
@@ -198,7 +198,7 @@ export interface TaskActivity {
   updated_at: string;
 }
 
-export type TaskActivityInput = Omit<TaskActivity, 'created_at' | 'updated_at'>;
+export type TaskActivityInput = Omit<TaskActivity, 'id' | 'created_at' | 'updated_at'>;
 
 export interface TaskDeliverable {
   id: string;
@@ -211,7 +211,7 @@ export interface TaskDeliverable {
   updated_at: string;
 }
 
-export type TaskDeliverableInput = Omit<TaskDeliverable, 'created_at' | 'updated_at'>;
+export type TaskDeliverableInput = Omit<TaskDeliverable, 'id' | 'created_at' | 'updated_at'>;
 
 export interface Checkpoint {
   agent_id: string;
@@ -269,7 +269,7 @@ export interface WorkflowTemplate {
   updated_at: string;
 }
 
-export type WorkflowTemplateInput = Omit<WorkflowTemplate, 'created_at' | 'updated_at'>;
+export type WorkflowTemplateInput = Omit<WorkflowTemplate, 'id' | 'created_at' | 'updated_at'>;
 
 export interface PlanningQuestion {
   id: string;
@@ -279,7 +279,7 @@ export interface PlanningQuestion {
   created_at: string;
 }
 
-export type PlanningQuestionInput = Omit<PlanningQuestion, 'created_at'>;
+export type PlanningQuestionInput = Omit<PlanningQuestion, 'id' | 'created_at'>;
 
 export interface PlanningSpec {
   id: string;
@@ -299,7 +299,7 @@ export interface KnowledgeEntry {
   updated_at: string;
 }
 
-export type KnowledgeEntryInput = Omit<KnowledgeEntry, 'created_at' | 'updated_at'>;
+export type KnowledgeEntryInput = Omit<KnowledgeEntry, 'id' | 'created_at' | 'updated_at'>;
 
 // Phase 4: Dispatch & Heartbeats (Supabase-only for now)
 export interface DispatchQueue {

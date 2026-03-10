@@ -41,11 +41,17 @@ export async function dispatchTask(
 /**
  * Subscribe to dispatch queue changes for a workspace.
  * Returns unsubscribe function.
+ * No-op (returns empty unsubscribe) in SQLite mode.
  */
 export function subscribeDispatch(
   workspaceId: string,
   callback: (status: 'pending' | 'claimed' | 'running' | 'completed' | 'failed' | 'cancelled', row: any) => void
 ) {
+  // No-op in SQLite mode
+  if (process.env.NEXT_PUBLIC_DATABASE_PROVIDER !== 'supabase') {
+    return () => {}; // empty unsubscribe function
+  }
+
   const channel = supabase
     .channel(`dispatch:${workspaceId}`)
     .on(
@@ -72,10 +78,16 @@ export function subscribeDispatch(
 /**
  * Subscribe to agent heartbeats for live status updates.
  * Returns unsubscribe function.
+ * No-op (returns empty unsubscribe) in SQLite mode.
  */
 export function subscribeHeartbeats(
   callback: (agentId: string, row: any) => void
 ) {
+  // No-op in SQLite mode
+  if (process.env.NEXT_PUBLIC_DATABASE_PROVIDER !== 'supabase') {
+    return () => {}; // empty unsubscribe function
+  }
+
   const channel = supabase
     .channel('agent-heartbeats')
     .on(
