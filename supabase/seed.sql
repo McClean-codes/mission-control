@@ -1,6 +1,12 @@
 -- Mission Control Agent Bootstrap Seed
 -- Idempotent INSERT for our 5-agent team
 
+-- Prerequisite: Create default workspace (FK required by agents table)
+INSERT INTO workspaces (id, name, slug, description, created_at, updated_at)
+VALUES ('default', 'Default', 'default', 'Default workspace', now(), now())
+ON CONFLICT (id) DO NOTHING;
+
+-- Insert the 5-agent team
 INSERT INTO agents (id, name, role, avatar_emoji, status, is_master, workspace_id, model, source, gateway_agent_id, created_at, updated_at)
 VALUES 
   ('sherlock', 'Sherlock', 'coordinator', '🔍', 'standby', false, 'default', 'anthropic/claude-sonnet-4-6', 'local', 'sherlock', now(), now()),
