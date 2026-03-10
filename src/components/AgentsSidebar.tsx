@@ -126,7 +126,26 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
   }, []);
 
   useEffect(() => {
-    // Subscribe to agent heartbeats for live status updates
+    // Initial load of existing heartbeats
+    const loadHeartbeats = async () => {
+      try {
+        const res = await fetch('/api/heartbeats');
+        if (res.ok) {
+          const data: Heartbeat[] = await res.json();
+          const map: Record<string, Heartbeat> = {};
+          for (const hb of data) {
+            map[hb.agent_id] = hb;
+          }
+          setHeartbeats(map);
+        }
+      } catch (error) {
+        console.error('Failed to load heartbeats:', error);
+      }
+    };
+
+    loadHeartbeats();
+
+    // Subscribe to agent heartbeats for live updates
     const unsubscribe = subscribeHeartbeats((agentId, row) => {
       setHeartbeats((prev) => ({
         ...prev,
