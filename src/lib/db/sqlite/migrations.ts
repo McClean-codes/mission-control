@@ -9,7 +9,13 @@
 
 // Dynamic require — avoids TypeScript needing @types/better-sqlite3 at build time
 // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
-const Database: any = require('better-sqlite3');
+let Database: any;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  Database = require('better-sqlite3');
+} catch {
+  // SQLite not available (Supabase mode or Node version without prebuilt)
+}
 
 // Note: bootstrapCoreAgentsRaw is not yet exported from bootstrap-agents
 // TODO: implement SQLite bootstrap in migrations
