@@ -148,7 +148,6 @@ export const supabaseProvider: DbProvider = {
     const { data, error } = await supabaseAdmin
       .from('events')
       .select('*')
-      .eq('workspace_id', workspaceId)
       .order('created_at', { ascending: false })
       .limit(limit);
 
