@@ -162,6 +162,9 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
 
     loadHeartbeats();
 
+    // Poll every 30 seconds
+    const interval = setInterval(loadHeartbeats, 30_000);
+
     // Subscribe to agent heartbeats for live updates
     const unsubscribe = subscribeHeartbeats((agentId, row) => {
       setHeartbeats((prev) => ({
@@ -171,6 +174,7 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
     });
 
     return () => {
+      clearInterval(interval);
       unsubscribe();
     };
   }, [workspaceId]);
