@@ -15,7 +15,8 @@ import { createClient } from '@supabase/supabase-js';
 // Environment variables
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const OPENCLAW_GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || 'http://localhost:3377';
+const OPENCLAW_GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || 'http://localhost:18789';
+const OPENCLAW_GATEWAY_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN;
 const AGENT_IDS = (process.env.AGENT_IDS || 'sherlock,edison,nikola,newton,scout').split(',').map(id => id.trim());
 
 // Validate required env vars
@@ -120,25 +121,70 @@ async function claimAndDispatch(row: DispatchRow): Promise<void> {
 }
 
 /**
- * Dispatch task to OpenClaw Gateway via HTTP
+ * Look up the active session key for an agent, then dispatch via sessions_send
  */
 async function dispatchToOpenClaw(agentId: string, payload: Record<string, any>): Promise<Record<string, any>> {
-  const dispatchUrl = `${OPENCLAW_GATEWAY_URL}/api/tasks/dispatch`;
-  
-  const response = await fetch(dispatchUrl, {
+  if (!OPENCLAW_GATEWAY_TOKEN) {
+    throw new Error('OPENCLAW_GATEWAY_TOKEN is not set in environment');
+  }
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${OPENCLAW_GATEWAY_TOKEN}`,
+  };
+
+  // Step 1: List active sessions to find the session for this agent
+  const sessionsRes = await fetch(`${OPENCLAW_GATEWAY_URL}/tools/invoke`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({
-      agent_id: agentId,
-      payload: payload,
+      tool: 'sessions_list',
+      args: { limit: 50 },
     }),
   });
 
-  if (!response.ok) {
-    throw new Error(`OpenClaw dispatch failed: ${response.status} ${response.statusText}`);
+  if (!sessionsRes.ok) {
+    throw new Error(`sessions_list failed: ${sessionsRes.status} ${sessionsRes.statusText}`);
   }
 
-  return response.json();
+  const sessionsData = await sessionsRes.json();
+  const sessions: Array<{ sessionKey: string; label?: string; agentId?: string }> = sessionsData?.result || [];
+
+  // Find session matching the agent — match by agentId or label
+  const agentSession = sessions.find(s =>
+    s.agentId === agentId || s.label === agentId
+  );
+
+  if (!agentSession) {
+    throw new Error(`No active session found for agent: ${agentId}`);
+  }
+
+  const sessionKey = agentSession.sessionKey;
+  console.log(`[watcher] Routing to agent=${agentId} session=${sessionKey}`);
+
+  // Step 2: Send message into the agent's session
+  const message = typeof payload.message === 'string'
+    ? payload.message
+    : JSON.stringify(payload);
+
+  const sendRes = await fetch(`${OPENCLAW_GATEWAY_URL}/tools/invoke`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      tool: 'sessions_send',
+      args: {
+        sessionKey,
+        message,
+      },
+    }),
+  });
+
+  if (!sendRes.ok) {
+    throw new Error(`sessions_send failed: ${sendRes.status} ${sendRes.statusText}`);
+  }
+
+  const result = await sendRes.json();
+  return { sessionKey, agentId, result };
 }
 
 /**
