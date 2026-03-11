@@ -16,18 +16,8 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const OPENCLAW_GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || 'http://localhost:18789';
-const OPENCLAW_GATEWAY_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN;
+const OPENCLAW_HOOK_TOKEN = process.env.OPENCLAW_HOOK_TOKEN;
 const AGENT_IDS = (process.env.AGENT_IDS || 'sherlock,edison,nikola,newton,scout').split(',').map(id => id.trim());
-
-// Maps agent_id to session key: "sherlock=agent:main:main,nikola=agent:nikola:main"
-const AGENT_SESSION_KEYS_RAW = process.env.AGENT_SESSION_KEYS || '';
-const agentSessionMap: Record<string, string> = {};
-for (const entry of AGENT_SESSION_KEYS_RAW.split(',').map(s => s.trim()).filter(Boolean)) {
-  const eqIdx = entry.indexOf('=');
-  if (eqIdx > 0) {
-    agentSessionMap[entry.slice(0, eqIdx).trim()] = entry.slice(eqIdx + 1).trim();
-  }
-}
 
 // Validate required env vars
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -131,73 +121,41 @@ async function claimAndDispatch(row: DispatchRow): Promise<void> {
 }
 
 /**
- * Dispatch to OpenClaw — resolve session key via map or sessions_list fallback
+ * Dispatch to OpenClaw via /hooks/agent endpoint
  */
 async function dispatchToOpenClaw(agentId: string, payload: Record<string, any>): Promise<Record<string, any>> {
-  if (!OPENCLAW_GATEWAY_TOKEN) {
-    throw new Error('OPENCLAW_GATEWAY_TOKEN is not set in environment');
+  if (!OPENCLAW_HOOK_TOKEN) {
+    throw new Error('OPENCLAW_HOOK_TOKEN is not set in environment');
   }
-
-  const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${OPENCLAW_GATEWAY_TOKEN}`,
-  };
-
-  // Resolve session key — prefer explicit map, fall back to sessions_list
-  let sessionKey = agentSessionMap[agentId];
-
-  if (!sessionKey) {
-    // Try sessions_list as fallback
-    const sessionsRes = await fetch(`${OPENCLAW_GATEWAY_URL}/tools/invoke`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ tool: 'sessions_list', args: { limit: 50 } }),
-    });
-
-    if (sessionsRes.ok) {
-      const sessionsData = await sessionsRes.json();
-      const sessions: Array<{ key: string; displayName?: string; agentId?: string; label?: string }> =
-        sessionsData?.result?.details?.sessions ||
-        sessionsData?.result?.sessions ||
-        sessionsData?.result ||
-        [];
-
-      // Try to match by any field containing the agent ID
-      const match = sessions.find(s =>
-        s.key?.includes(agentId) ||
-        s.displayName?.toLowerCase().includes(agentId.toLowerCase()) ||
-        s.agentId === agentId ||
-        s.label === agentId
-      );
-
-      if (match) sessionKey = match.key;
-    }
-  }
-
-  if (!sessionKey) {
-    throw new Error(
-      `No session key found for agent: ${agentId}. ` +
-      `Add to AGENT_SESSION_KEYS env var: ${agentId}=<session-key>`
-    );
-  }
-
-  console.log(`[watcher] Routing to agent=${agentId} session=${sessionKey}`);
 
   const message = typeof payload.message === 'string'
     ? payload.message
     : JSON.stringify(payload);
 
-  const sendRes = await fetch(`${OPENCLAW_GATEWAY_URL}/tools/invoke`, {
+  const response = await fetch(`${OPENCLAW_GATEWAY_URL}/hooks/agent`, {
     method: 'POST',
-    headers,
-    body: JSON.stringify({ tool: 'sessions_send', args: { sessionKey, message } }),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${OPENCLAW_HOOK_TOKEN}`,
+    },
+    body: JSON.stringify({
+      message,
+      agentId,
+      wakeMode: 'now',
+    }),
   });
 
-  if (!sendRes.ok) {
-    throw new Error(`sessions_send failed: ${sendRes.status} ${sendRes.statusText}`);
+  if (!response.ok) {
+    throw new Error(`/hooks/agent failed: ${response.status} ${response.statusText}`);
   }
 
-  return { sessionKey, agentId, result: await sendRes.json() };
+  const result = await response.json();
+  if (!result.ok) {
+    throw new Error(`/hooks/agent error: ${JSON.stringify(result)}`);
+  }
+
+  console.log(`[watcher] Dispatched to agent=${agentId} runId=${result.runId}`);
+  return result;
 }
 
 /**
