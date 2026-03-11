@@ -19,6 +19,16 @@ const OPENCLAW_GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || 'http://localho
 const OPENCLAW_GATEWAY_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN;
 const AGENT_IDS = (process.env.AGENT_IDS || 'sherlock,edison,nikola,newton,scout').split(',').map(id => id.trim());
 
+// Maps agent_id to session key: "sherlock=agent:main:main,nikola=agent:nikola:main"
+const AGENT_SESSION_KEYS_RAW = process.env.AGENT_SESSION_KEYS || '';
+const agentSessionMap: Record<string, string> = {};
+for (const entry of AGENT_SESSION_KEYS_RAW.split(',').map(s => s.trim()).filter(Boolean)) {
+  const eqIdx = entry.indexOf('=');
+  if (eqIdx > 0) {
+    agentSessionMap[entry.slice(0, eqIdx).trim()] = entry.slice(eqIdx + 1).trim();
+  }
+}
+
 // Validate required env vars
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   console.error('[watcher] Missing required env vars: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY');
@@ -121,7 +131,7 @@ async function claimAndDispatch(row: DispatchRow): Promise<void> {
 }
 
 /**
- * Look up the active session key for an agent, then dispatch via sessions_send
+ * Dispatch to OpenClaw — resolve session key via map or sessions_list fallback
  */
 async function dispatchToOpenClaw(agentId: string, payload: Record<string, any>): Promise<Record<string, any>> {
   if (!OPENCLAW_GATEWAY_TOKEN) {
@@ -133,37 +143,46 @@ async function dispatchToOpenClaw(agentId: string, payload: Record<string, any>)
     'Authorization': `Bearer ${OPENCLAW_GATEWAY_TOKEN}`,
   };
 
-  // Step 1: List active sessions to find the session for this agent
-  const sessionsRes = await fetch(`${OPENCLAW_GATEWAY_URL}/tools/invoke`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      tool: 'sessions_list',
-      args: { limit: 50 },
-    }),
-  });
+  // Resolve session key — prefer explicit map, fall back to sessions_list
+  let sessionKey = agentSessionMap[agentId];
 
-  if (!sessionsRes.ok) {
-    throw new Error(`sessions_list failed: ${sessionsRes.status} ${sessionsRes.statusText}`);
+  if (!sessionKey) {
+    // Try sessions_list as fallback
+    const sessionsRes = await fetch(`${OPENCLAW_GATEWAY_URL}/tools/invoke`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ tool: 'sessions_list', args: { limit: 50 } }),
+    });
+
+    if (sessionsRes.ok) {
+      const sessionsData = await sessionsRes.json();
+      const sessions: Array<{ key: string; displayName?: string; agentId?: string; label?: string }> =
+        sessionsData?.result?.details?.sessions ||
+        sessionsData?.result?.sessions ||
+        sessionsData?.result ||
+        [];
+
+      // Try to match by any field containing the agent ID
+      const match = sessions.find(s =>
+        s.key?.includes(agentId) ||
+        s.displayName?.toLowerCase().includes(agentId.toLowerCase()) ||
+        s.agentId === agentId ||
+        s.label === agentId
+      );
+
+      if (match) sessionKey = match.key;
+    }
   }
 
-  const sessionsData = await sessionsRes.json();
-  const sessions: Array<{ sessionKey: string; label?: string; agentId?: string }> =
-    sessionsData?.result?.details?.sessions || sessionsData?.result?.sessions || [];
-
-  // Find session matching the agent — match by agentId or label
-  const agentSession = sessions.find(s =>
-    s.agentId === agentId || s.label === agentId
-  );
-
-  if (!agentSession) {
-    throw new Error(`No active session found for agent: ${agentId}`);
+  if (!sessionKey) {
+    throw new Error(
+      `No session key found for agent: ${agentId}. ` +
+      `Add to AGENT_SESSION_KEYS env var: ${agentId}=<session-key>`
+    );
   }
 
-  const sessionKey = agentSession.sessionKey;
   console.log(`[watcher] Routing to agent=${agentId} session=${sessionKey}`);
 
-  // Step 2: Send message into the agent's session
   const message = typeof payload.message === 'string'
     ? payload.message
     : JSON.stringify(payload);
@@ -171,21 +190,14 @@ async function dispatchToOpenClaw(agentId: string, payload: Record<string, any>)
   const sendRes = await fetch(`${OPENCLAW_GATEWAY_URL}/tools/invoke`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({
-      tool: 'sessions_send',
-      args: {
-        sessionKey,
-        message,
-      },
-    }),
+    body: JSON.stringify({ tool: 'sessions_send', args: { sessionKey, message } }),
   });
 
   if (!sendRes.ok) {
     throw new Error(`sessions_send failed: ${sendRes.status} ${sendRes.statusText}`);
   }
 
-  const result = await sendRes.json();
-  return { sessionKey, agentId, result };
+  return { sessionKey, agentId, result: await sendRes.json() };
 }
 
 /**
