@@ -135,8 +135,8 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
   }, [workspaceId]);
 
   useEffect(() => {
-    // Only load/subscribe to heartbeats if dispatch is enabled
-    if (process.env.NEXT_PUBLIC_SUPABASE_AGENT_DISPATCH !== 'true') {
+    // Only load/subscribe to heartbeats if in Supabase mode
+    if (process.env.NEXT_PUBLIC_DATABASE_PROVIDER !== 'supabase') {
       return;
     }
 
@@ -339,7 +339,7 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
                   )}
                 </div>
 
-                {isDispatchEnabled && (() => {
+                {process.env.NEXT_PUBLIC_DATABASE_PROVIDER === 'supabase' && (() => {
                   const heartbeat = heartbeats[agent.id];
                   const heartbeatStatus = getAgentStatus(heartbeat?.last_seen_at || null);
                   const statusLabel = getAgentStatusLabel(heartbeatStatus);
