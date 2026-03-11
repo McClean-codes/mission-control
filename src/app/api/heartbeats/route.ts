@@ -13,11 +13,18 @@ export async function GET() {
     });
 
     if (!res.ok) {
-      return NextResponse.json([], { status: 200 });
+      return NextResponse.json([], {
+        status: 200,
+        headers: { 'Cache-Control': 'no-store' },
+      });
     }
 
     const data = await res.json();
-    return NextResponse.json(data);
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      },
+    });
   } catch (error) {
     return NextResponse.json([], { status: 200 });
   }
