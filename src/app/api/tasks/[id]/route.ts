@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db, supabaseAdmin } from '@/lib/db';
 
 type Params = {
   id: string;
@@ -46,6 +46,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 export async function DELETE(request: NextRequest, { params }: { params: Promise<Params> }) {
   try {
     const { id } = await params;
+
+    // Cascade delete: remove child rows before deleting task
+    if (process.env.DATABASE_PROVIDER === 'supabase') {
+      // Delete rows that don't have ON DELETE CASCADE defined
+      await supabaseAdmin.from('events').delete().eq('task_id', id);
+      await supabaseAdmin.from('conversations').delete().eq('task_id', id);
+      await supabaseAdmin.from('openclaw_sessions').delete().eq('task_id', id);
+      await supabaseAdmin.from('knowledge_entries').delete().eq('task_id', id);
+    }
+
+    // Delete the task (other child tables have ON DELETE CASCADE)
     await db.deleteTask(id);
     return NextResponse.json({ success: true });
   } catch (error) {

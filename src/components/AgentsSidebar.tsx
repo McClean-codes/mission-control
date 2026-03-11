@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, ChevronRight, ChevronLeft, Zap, ZapOff, Loader2, Search } from 'lucide-react';
+import { Plus, ChevronRight, ChevronLeft, Search } from 'lucide-react';
 import { supabase } from '@/lib/db/supabase/client';
 import { useMissionControl } from '@/lib/store';
 import { subscribeHeartbeats, getAgentStatus, getAgentStatusLabel } from '@/lib/dispatch';
@@ -38,7 +38,6 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [showDiscoverModal, setShowDiscoverModal] = useState(false);
-  const [connectingAgentId, setConnectingAgentId] = useState<string | null>(null);
   const [activeSubAgents, setActiveSubAgents] = useState(0);
   const [isMinimized, setIsMinimized] = useState(false);
   const [checkpoints, setCheckpoints] = useState<Record<string, Checkpoint>>({});
@@ -179,36 +178,6 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
     };
   }, [workspaceId]);
 
-  const handleConnectToOpenClaw = async (agent: Agent, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setConnectingAgentId(agent.id);
-
-    try {
-      const existingSession = agentOpenClawSessions[agent.id];
-
-      if (existingSession) {
-        const res = await fetch(`/api/agents/${agent.id}/openclaw`, { method: 'DELETE' });
-        if (res.ok) {
-          setAgentOpenClawSession(agent.id, null);
-        }
-      } else {
-        const res = await fetch(`/api/agents/${agent.id}/openclaw`, { method: 'POST' });
-        if (res.ok) {
-          const data = await res.json();
-          setAgentOpenClawSession(agent.id, data.session as OpenClawSession);
-        } else {
-          const error = await res.json();
-          console.error('Failed to connect to OpenClaw:', error);
-          alert(`Failed to connect: ${error.error || 'Unknown error'}`);
-        }
-      }
-    } catch (error) {
-      console.error('OpenClaw connection error:', error);
-    } finally {
-      setConnectingAgentId(null);
-    }
-  };
-
   const filteredAgents = agents.filter((agent) => {
     if (filter === 'all') return true;
     return agent.status === filter;
@@ -308,7 +277,6 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
             );
           }
 
-          const isConnecting = connectingAgentId === agent.id;
           return (
             <div key={agent.id} className={`w-full rounded hover:bg-mc-bg-tertiary transition-colors ${selectedAgent?.id === agent.id ? 'bg-mc-bg-tertiary' : ''}`}>
               <button
@@ -359,36 +327,7 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
                 })()}
               </button>
 
-              {!!agent.is_master && isDispatchEnabled && (
-                <div className="px-2 pb-2">
-                  <button
-                    onClick={(e) => handleConnectToOpenClaw(agent, e)}
-                    disabled={isConnecting}
-                    className={`w-full min-h-11 flex items-center justify-center gap-2 px-2 rounded text-xs transition-colors ${
-                      openclawSession
-                        ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                        : 'bg-mc-bg text-mc-text-secondary hover:bg-mc-bg-tertiary hover:text-mc-text'
-                    }`}
-                  >
-                    {isConnecting ? (
-                      <>
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        <span>Connecting...</span>
-                      </>
-                    ) : openclawSession ? (
-                      <>
-                        <Zap className="w-3 h-3" />
-                        <span>OpenClaw Connected</span>
-                      </>
-                    ) : (
-                      <>
-                        <ZapOff className="w-3 h-3" />
-                        <span>Connect to OpenClaw</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
+
             </div>
           );
         })}
