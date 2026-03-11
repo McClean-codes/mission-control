@@ -148,7 +148,8 @@ async function dispatchToOpenClaw(agentId: string, payload: Record<string, any>)
   }
 
   const sessionsData = await sessionsRes.json();
-  const sessions: Array<{ sessionKey: string; label?: string; agentId?: string }> = sessionsData?.result || [];
+  const sessions: Array<{ sessionKey: string; label?: string; agentId?: string }> =
+    sessionsData?.result?.details?.sessions || sessionsData?.result?.sessions || [];
 
   // Find session matching the agent — match by agentId or label
   const agentSession = sessions.find(s =>
