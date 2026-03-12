@@ -47,7 +47,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<P
       activity_id: activity.id,
     });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
+    const msg = error instanceof Error ? error.message : JSON.stringify(error);
     console.error('[dispatch] Error:', msg);
     return NextResponse.json({ error: 'Failed to dispatch task', detail: msg }, { status: 500 });
   }
