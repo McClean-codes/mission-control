@@ -10,7 +10,7 @@ type Params = {
 export async function POST(request: NextRequest, { params }: { params: Promise<Params> }) {
   try {
     const { id } = await params;
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const { agent_id, subagent_id, instructions } = body;
 
     const task = await db.getTask(id);
