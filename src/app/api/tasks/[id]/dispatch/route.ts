@@ -20,6 +20,23 @@ export async function POST(request: NextRequest, { params }: { params: Promise<P
 
     await db.updateTask(id, { status: 'assigned' });
 
+    // Log activity directly (bypassing the broken db layer types)
+    const { createClient } = await import('@supabase/supabase-js');
+    const { randomUUID } = await import('crypto');
+    const sbAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    await sbAdmin.from('task_activities').insert({
+      id: randomUUID(),
+      task_id: id,
+      agent_id: task.assigned_agent_id || agent_id || null,
+      activity_type: 'dispatched',
+      message: `Task dispatched to ${task.assigned_agent_id || agent_id || 'agent'}`,
+      metadata: { instructions: instructions || null },
+      created_at: new Date().toISOString(),
+    });
+
     // Write to dispatch_queue so the watcher picks it up
     const assignedAgentId = task.assigned_agent_id || agent_id;
     if (assignedAgentId) {
