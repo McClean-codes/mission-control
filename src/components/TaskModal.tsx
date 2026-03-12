@@ -95,17 +95,7 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
         // Editing existing task
         updateTask(savedTask);
 
-        // Note: dispatch for existing tasks is handled server-side by the PATCH route.
-        // Only trigger client-side dispatch for drag-to-in_progress (legacy flow).
-        if (shouldTriggerAutoDispatch(task.status, savedTask.status, savedTask.assigned_agent_id)) {
-          triggerAutoDispatch({
-            taskId: savedTask.id,
-            taskTitle: savedTask.title,
-            agentId: savedTask.assigned_agent_id,
-            agentName: savedTask.assigned_agent?.name || 'Unknown Agent',
-            workspaceId: savedTask.workspace_id
-          }).catch((err) => console.error('Auto-dispatch failed:', err));
-        }
+        // Dispatch is handled by MissionQueue on drag-to-in_progress; skip here to avoid double-dispatch.
 
         onClose();
         return;
