@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, AlertTriangle, Activity, Clock, Filter, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { createClient } from '@supabase/supabase-js';
 import type { Agent, Event, Task, Workspace } from '@/lib/types';
 
 type ActivityFilter = 'all' | 'working' | 'blocked' | 'idle';
@@ -21,7 +22,7 @@ export function AgentActivityDashboard({ workspace }: AgentActivityDashboardProp
   const [isPortrait, setIsPortrait] = useState(true);
   const [sseConnected, setSseConnected] = useState(false);
 
-  const eventSourceRef = useRef<EventSource | null>(null);
+  const realtimeChannelRef = useRef<ReturnType<ReturnType<typeof createClient>['channel']> | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const workspaceId = workspace?.id;
@@ -97,33 +98,45 @@ export function AgentActivityDashboard({ workspace }: AgentActivityDashboardProp
       }
     };
 
-    const connectSSE = () => {
-      const source = new EventSource('/api/events/stream');
-      eventSourceRef.current = source;
-
-      source.onopen = () => {
-        setSseConnected(true);
-        stopPolling();
-      };
-
-      source.onmessage = (event) => {
-        if (event.data.startsWith(':')) return;
-        refresh();
-      };
-
-      source.onerror = () => {
-        setSseConnected(false);
-        source.close();
-        eventSourceRef.current = null;
+    const connectRealtime = () => {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (!supabaseUrl || !supabaseKey) {
         startPolling();
-      };
+        return;
+      }
+
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      const channel = supabase
+        .channel('mc-realtime')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'events' }, () => {
+          refresh();
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'agents' }, () => {
+          refresh();
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            setSseConnected(true);
+            stopPolling();
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            setSseConnected(false);
+            startPolling();
+          }
+        });
+
+      realtimeChannelRef.current = channel;
     };
 
-    connectSSE();
-    startPolling();
+    connectRealtime();
+    startPolling(); // fallback until realtime confirms SUBSCRIBED
 
     return () => {
-      eventSourceRef.current?.close();
+      if (realtimeChannelRef.current) {
+        realtimeChannelRef.current.unsubscribe();
+        realtimeChannelRef.current = null;
+      }
       stopPolling();
     };
   }, [workspaceId]);
@@ -209,7 +222,7 @@ export function AgentActivityDashboard({ workspace }: AgentActivityDashboardProp
             <div className="min-w-0">
               <h1 className="text-lg sm:text-xl font-semibold truncate">Agent Activity Dashboard</h1>
               <p className="text-xs sm:text-sm text-mc-text-secondary truncate">
-                {workspace ? `${workspace.icon} ${workspace.name}` : 'All workspaces'} · {sseConnected ? 'Live (SSE)' : 'Polling fallback'}
+                {workspace ? `${workspace.icon} ${workspace.name}` : 'All workspaces'} · {sseConnected ? 'Live (Realtime)' : 'Polling fallback'}
               </p>
             </div>
           </div>
