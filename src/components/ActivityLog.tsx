@@ -138,9 +138,9 @@ export function ActivityLog({ taskId }: ActivityLogProps) {
             {/* Metadata */}
             {activity.metadata && (
               <div className="mt-2 p-2 bg-mc-bg-tertiary rounded text-xs text-mc-text-secondary font-mono">
-                {typeof activity.metadata === 'string' 
-                  ? activity.metadata 
-                  : JSON.stringify(JSON.parse(activity.metadata), null, 2)}
+                {typeof activity.metadata === 'string'
+                  ? activity.metadata
+                  : JSON.stringify(activity.metadata, null, 2)}
               </div>
             )}
 
