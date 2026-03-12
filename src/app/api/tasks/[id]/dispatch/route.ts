@@ -20,13 +20,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<P
 
     const activity = await db.createActivity({
       task_id: id,
-      agent_id: agent_id || undefined,
-      action: 'dispatch',
-      details: {
-        agent_id: agent_id || null,
-        subagent_id: subagent_id || null,
-        instructions: instructions || null,
-      },
+      agent_id: task.assigned_agent_id || agent_id || undefined,
+      activity_type: 'dispatched',
+      message: `Task dispatched${agent_id ? ` to ${agent_id}` : ''}${instructions ? `: ${instructions}` : ''}`,
     });
 
     await db.updateTask(id, { status: 'assigned' });
