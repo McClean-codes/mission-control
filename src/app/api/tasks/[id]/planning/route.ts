@@ -20,21 +20,26 @@ export async function GET(request: NextRequest, { params }: { params: Promise<Pa
 export async function POST(request: NextRequest, { params }: { params: Promise<Params> }) {
   try {
     const { id } = await params;
-    const body = await request.json();
-    const { question, context, category } = body;
 
-    if (!question) {
-      return NextResponse.json({ error: 'question required' }, { status: 400 });
+    const task = await db.getTask(id);
+    if (!task) {
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    const q = await db.createPlanningQuestion({
-      question,
-      context: context || undefined,
-      category: category || undefined,
-    });
+    // Mark task as planning
+    await db.updateTask(id, { status: 'planning' });
 
-    return NextResponse.json(q, { status: 201 });
+    // Return session scaffold — agent (Edison) will write questions via planning API
+    // Frontend polls /planning/poll for questions as they arrive
+    return NextResponse.json({
+      sessionKey: `planning-${id}`,
+      messages: [],
+      isStarted: true,
+      task_id: id,
+    });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create planning question' }, { status: 500 });
+    const msg = error instanceof Error ? error.message : JSON.stringify(error);
+    console.error('[planning] POST error:', msg);
+    return NextResponse.json({ error: 'Failed to start planning', detail: msg }, { status: 500 });
   }
 }
