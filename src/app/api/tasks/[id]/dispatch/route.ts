@@ -18,14 +18,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<P
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    const activity = await db.createActivity({
-      task_id: id,
-      agent_id: task.assigned_agent_id || agent_id || undefined,
-      action: 'dispatch',
-      description: `Task dispatched${agent_id ? ` to ${agent_id}` : ''}`,
-      details: { agent_id: agent_id || null, subagent_id: subagent_id || null, instructions: instructions || null },
-    });
-
     await db.updateTask(id, { status: 'assigned' });
 
     // Write to dispatch_queue so the watcher picks it up
@@ -39,13 +31,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<P
       }).catch((err) => console.error('[dispatch] Failed to queue:', err));
     }
 
-    return NextResponse.json({
-      success: true,
-      task_id: id,
-      agent_id,
-      subagent_id,
-      activity_id: activity.id,
-    });
+    return NextResponse.json({ success: true, task_id: id, agent_id });
   } catch (error) {
     const msg = error instanceof Error ? error.message : JSON.stringify(error);
     console.error('[dispatch] Error:', msg);
