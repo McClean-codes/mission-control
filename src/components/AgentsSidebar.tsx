@@ -26,6 +26,15 @@ interface Heartbeat {
   metadata?: Record<string, any>;
 }
 
+interface SubAgentSession {
+  id: string;
+  parent_agent_id: string;
+  agent_name: string | null;
+  status: string;
+  openclaw_session_id: string;
+  metadata?: Record<string, any>;
+}
+
 interface AgentsSidebarProps {
   workspaceId?: string;
   mobileMode?: boolean;
@@ -42,6 +51,7 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
   const [isMinimized, setIsMinimized] = useState(false);
   const [checkpoints, setCheckpoints] = useState<Record<string, Checkpoint>>({});
   const [heartbeats, setHeartbeats] = useState<Record<string, Heartbeat>>({});
+  const [subAgentSessions, setSubAgentSessions] = useState<SubAgentSession[]>([]);
 
   const effectiveMinimized = mobileMode ? false : isMinimized;
   const toggleMinimize = () => setIsMinimized(!isMinimized);
@@ -70,20 +80,21 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
   }, [loadOpenClawSessions, agents.length]);
 
   useEffect(() => {
-    const loadSubAgentCount = async () => {
+    const loadSubAgentSessions = async () => {
       try {
-        const res = await fetch('/api/openclaw/sessions?session_type=subagent&status=active');
+        const res = await fetch('/api/openclaw/sessions');
         if (res.ok) {
-          const sessions = await res.json();
+          const sessions: SubAgentSession[] = await res.json();
+          setSubAgentSessions(sessions);
           setActiveSubAgents(sessions.length);
         }
       } catch (error) {
-        console.error('Failed to load sub-agent count:', error);
+        console.error('Failed to load sub-agent sessions:', error);
       }
     };
 
-    loadSubAgentCount();
-    const interval = setInterval(loadSubAgentCount, 30000);
+    loadSubAgentSessions();
+    const interval = setInterval(loadSubAgentSessions, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -289,6 +300,25 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
                 <div className="text-2xl relative">
                   {agent.avatar_emoji}
                   {openclawSession && <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-mc-bg-secondary" />}
+                  
+                  {/* Sub-agent session dots */}
+                  {(() => {
+                    const agentSessions = subAgentSessions.filter(s => s.parent_agent_id === agent.id);
+                    if (agentSessions.length === 0) return null;
+                    return (
+                      <div className="absolute -top-1 left-1/2 -translate-x-1/2 flex gap-0.5">
+                        {agentSessions.map((s) => (
+                          <span
+                            key={s.id}
+                            title={s.metadata?.instructions || s.openclaw_session_id}
+                            className={`inline-block w-1.5 h-1.5 rounded-full ${
+                              s.status === 'active' ? 'bg-green-500' : 'bg-mc-text-secondary'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="flex-1 min-w-0">

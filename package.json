@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start -p ${PORT:-4000}",
     "lint": "next lint",
-    "dispatch:watch": "tsx scripts/dispatch-watcher.ts"
+    "dispatch:watch": "tsx scripts/dispatch-watcher.ts",
+    "bridge:watch": "tsx scripts/openclaw-bridge.ts"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^17.0.0",
