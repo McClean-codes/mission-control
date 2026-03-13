@@ -1,16 +1,32 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db, supabaseAdmin } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
-    // Note: filtering by session_type, status, and agent_id is not directly supported by DbProvider
-    // For Supabase, this will work via the provider implementation
-    // For SQLite, these routes return empty arrays
-    const sessions = await db.getOpenClawSession('');
-    return NextResponse.json(sessions ? [sessions] : []);
+    const { data, error } = await supabaseAdmin
+      .from('openclaw_sessions')
+      .select(`
+        *,
+        agent:agents!openclaw_sessions_agent_id_fkey(name, avatar_emoji),
+        parent:agents!openclaw_sessions_parent_agent_id_fkey(name, avatar_emoji)
+      `)
+      .eq('session_type', 'subagent')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+
+    if (error) return NextResponse.json([], { status: 200 });
+
+    const sessions = (data || []).map((s: any) => ({
+      ...s,
+      agent_name: s.agent?.name || null,
+      agent_avatar_emoji: s.agent?.avatar_emoji || null,
+      parent_agent_name: s.parent?.name || null,
+    }));
+
+    return NextResponse.json(sessions);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch sessions' }, { status: 500 });
+    return NextResponse.json([], { status: 200 });
   }
 }
 

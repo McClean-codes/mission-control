@@ -647,6 +647,21 @@ const migrations: Migration[] = [
         console.log('[Migration 014] Added images column to tasks');
       }
     }
+  },
+  {
+    id: '015',
+    name: 'add_parent_agent_id_to_sessions',
+    up: (db) => {
+      console.log('[Migration 015] Adding parent_agent_id to openclaw_sessions...');
+
+      const sessionsInfo = db.prepare("PRAGMA table_info(openclaw_sessions)").all() as { name: string }[];
+
+      if (!sessionsInfo.some(col => col.name === 'parent_agent_id')) {
+        db.exec(`ALTER TABLE openclaw_sessions ADD COLUMN parent_agent_id TEXT REFERENCES agents(id)`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_openclaw_sessions_parent ON openclaw_sessions(parent_agent_id)`);
+        console.log('[Migration 015] Added parent_agent_id to openclaw_sessions');
+      }
+    }
   }
 ];
 

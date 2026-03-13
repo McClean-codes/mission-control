@@ -9,6 +9,7 @@ import { AgentsSidebar } from '@/components/AgentsSidebar';
 import { MissionQueue } from '@/components/MissionQueue';
 import { LiveFeed } from '@/components/LiveFeed';
 import { SSEDebugPanel } from '@/components/SSEDebugPanel';
+import { ActiveJobsPanel } from '@/components/ActiveJobsPanel';
 import { useMissionControl } from '@/lib/store';
 import { useSSE } from '@/hooks/useSSE';
 import { debug } from '@/lib/debug';
@@ -316,6 +317,7 @@ function MobileSettingsPanel({ workspace, denseLandscape = false }: { workspace:
           <div className="text-xs text-mc-text-secondary mt-1">/{workspace.slug}</div>
         </div>
 
+        <ActiveJobsPanel />
 
         <Link href={`/workspace/${workspace.slug}/activity`} className="w-full min-h-11 px-4 rounded-lg border border-mc-border bg-mc-bg-secondary flex items-center justify-between text-sm">
           <span className="flex items-center gap-2">

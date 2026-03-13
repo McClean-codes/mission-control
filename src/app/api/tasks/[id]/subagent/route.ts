@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db, supabaseAdmin } from '@/lib/db';
 
 type Params = {
   id: string;
@@ -10,7 +10,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<P
   try {
     const { id } = await params;
     const body = await request.json();
-    const { agent_id, instructions, context } = body;
+    const { agent_id, parent_agent_id, instructions, context } = body;
 
     if (!agent_id) {
       return NextResponse.json({ error: 'agent_id required' }, { status: 400 });
@@ -19,10 +19,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<P
     const session = await db.createOpenClawSession({
       workspace_id: 'default',
       agent_id: agent_id,
+      parent_agent_id: parent_agent_id || null,
       session_type: 'subagent',
       status: 'active',
+      task_id: id,
       metadata: {
-        task_id: id,
         instructions: instructions || null,
         context: context || {},
       },
@@ -49,10 +50,28 @@ export async function GET(request: NextRequest, { params }: { params: Promise<Pa
   try {
     const { id } = await params;
 
-    const activities = await db.getActivities(id);
-    const subagentActivities = activities.filter((a: any) => a.action === 'subagent_spawned');
-    return NextResponse.json(subagentActivities);
+    const { data, error } = await supabaseAdmin
+      .from('openclaw_sessions')
+      .select(`
+        *,
+        agent:agents!openclaw_sessions_agent_id_fkey(name, avatar_emoji),
+        parent:agents!openclaw_sessions_parent_agent_id_fkey(name, avatar_emoji)
+      `)
+      .eq('task_id', id)
+      .eq('session_type', 'subagent')
+      .order('created_at', { ascending: false });
+
+    if (error) return NextResponse.json([], { status: 200 });
+
+    const sessions = (data || []).map((s: any) => ({
+      ...s,
+      agent_name: s.agent?.name || null,
+      agent_avatar_emoji: s.agent?.avatar_emoji || null,
+      parent_agent_name: s.parent?.name || null,
+    }));
+
+    return NextResponse.json(sessions);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch subagent history' }, { status: 500 });
+    return NextResponse.json([], { status: 200 });
   }
 }

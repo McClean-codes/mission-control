@@ -147,6 +147,7 @@ CREATE TABLE IF NOT EXISTS openclaw_sessions (
   channel TEXT,
   status TEXT DEFAULT 'active',
   session_type TEXT DEFAULT 'persistent',
+  parent_agent_id TEXT REFERENCES agents(id),
   task_id TEXT REFERENCES tasks(id),
   ended_at TEXT,
   created_at TEXT DEFAULT (datetime('now')),
