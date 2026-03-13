@@ -1,1 +1,0 @@
-{ "agent_id": "newton", "task_id": "TASK-google-oauth", "status": "active", "summary": "Created OAuth SSR clients, middleware, login page, callback route, added sign-out button", "metadata": { "branch": "feat/google-oauth", "last_step": "files created", "updated_at": "2026-03-12T23:15:00Z" } }
