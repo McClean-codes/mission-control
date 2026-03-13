@@ -2,14 +2,20 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { ImagePlus, X, Loader2 } from 'lucide-react';
-import type { TaskImage } from '@/lib/types';
+
+interface TaskImageData {
+  id: string;
+  url: string;
+  filename: string;
+  created_at: string;
+}
 
 interface TaskImagesProps {
   taskId: string;
 }
 
 export function TaskImages({ taskId }: TaskImagesProps) {
-  const [images, setImages] = useState<TaskImage[]>([]);
+  const [images, setImages] = useState<TaskImageData[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -17,7 +23,7 @@ export function TaskImages({ taskId }: TaskImagesProps) {
   useEffect(() => {
     fetch(`/api/tasks/${taskId}/images`)
       .then(res => res.json())
-      .then(data => setImages(data.images || []))
+      .then(data => setImages(Array.isArray(data) ? data : []))
       .catch(() => setError('Failed to load images'));
   }, [taskId]);
 
@@ -44,28 +50,12 @@ export function TaskImages({ taskId }: TaskImagesProps) {
       }
 
       const data = await res.json();
-      setImages(prev => [...prev, data.image]);
+      setImages(prev => [...prev, data]);
     } catch {
       setError('Upload failed');
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  const handleDelete = async (filename: string) => {
-    try {
-      const res = await fetch(`/api/tasks/${taskId}/images`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename }),
-      });
-
-      if (res.ok) {
-        setImages(prev => prev.filter(img => img.filename !== filename));
-      }
-    } catch {
-      setError('Failed to delete image');
     }
   };
 
@@ -85,7 +75,7 @@ export function TaskImages({ taskId }: TaskImagesProps) {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
+            accept="image/png,image/jpeg,image/jfif,image/pjpeg"
             onChange={handleUpload}
             disabled={uploading}
             className="hidden"
@@ -104,28 +94,14 @@ export function TaskImages({ taskId }: TaskImagesProps) {
       )}
 
       {images.length > 0 && (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2 p-2">
           {images.map((img) => (
-            <div key={img.filename} className="group relative rounded-lg overflow-hidden border border-mc-border bg-mc-bg">
-              <img
-                src={`/api/task-images/${taskId}/${img.filename}`}
-                alt={img.original_name}
-                className="w-full h-32 object-cover"
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                <button
-                  onClick={() => handleDelete(img.filename)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-red-500/80 hover:bg-red-500 rounded-full"
-                >
-                  <X className="w-3.5 h-3.5 text-white" />
-                </button>
-              </div>
-              <div className="px-2 py-1">
-                <p className="text-xs text-mc-text-secondary truncate" title={img.original_name}>
-                  {img.original_name}
-                </p>
-              </div>
-            </div>
+            <img
+              key={img.id}
+              src={img.url}
+              alt={img.filename}
+              className="w-full rounded object-cover aspect-square"
+            />
           ))}
         </div>
       )}
