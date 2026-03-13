@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Zap, Settings, ChevronLeft, LayoutGrid } from 'lucide-react';
+import { Zap, Settings, ChevronLeft, LayoutGrid, LogOut } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
+import { createClient } from '@/lib/supabase/client';
 import { format } from 'date-fns';
 import type { Workspace } from '@/lib/types';
 
@@ -18,6 +19,12 @@ export function Header({ workspace, isPortrait = true }: HeaderProps) {
   const { agents, tasks, isOnline } = useMissionControl();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeSubAgents, setActiveSubAgents] = useState(0);
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -70,6 +77,9 @@ export function Header({ workspace, isPortrait = true }: HeaderProps) {
 
             <button onClick={() => router.push('/settings')} className="min-h-11 min-w-11 p-2 hover:bg-mc-bg-tertiary rounded text-mc-text-secondary shrink-0" title="Settings">
               <Settings className="w-5 h-5" />
+            </button>
+            <button onClick={handleSignOut} className="min-h-11 min-w-11 p-2 hover:bg-mc-bg-tertiary rounded text-mc-text-secondary shrink-0" title="Sign out">
+              <LogOut className="w-5 h-5" />
             </button>
           </div>
 
@@ -152,6 +162,9 @@ export function Header({ workspace, isPortrait = true }: HeaderProps) {
             </div>
             <button onClick={() => router.push('/settings')} className="min-h-11 min-w-11 p-2 hover:bg-mc-bg-tertiary rounded text-mc-text-secondary" title="Settings">
               <Settings className="w-5 h-5" />
+            </button>
+            <button onClick={handleSignOut} className="min-h-11 min-w-11 p-2 hover:bg-mc-bg-tertiary rounded text-mc-text-secondary" title="Sign out">
+              <LogOut className="w-5 h-5" />
             </button>
           </div>
         </>
