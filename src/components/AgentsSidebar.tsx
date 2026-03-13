@@ -300,25 +300,6 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
                 <div className="text-2xl relative">
                   {agent.avatar_emoji}
                   {openclawSession && <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-mc-bg-secondary" />}
-                  
-                  {/* Sub-agent session dots */}
-                  {(() => {
-                    const agentSessions = subAgentSessions.filter(s => s.parent_agent_id === agent.id);
-                    if (agentSessions.length === 0) return null;
-                    return (
-                      <div className="absolute -top-1 left-1/2 -translate-x-1/2 flex gap-0.5">
-                        {agentSessions.map((s) => (
-                          <span
-                            key={s.id}
-                            title={s.metadata?.instructions || s.openclaw_session_id}
-                            className={`inline-block w-1.5 h-1.5 rounded-full ${
-                              s.status === 'active' ? 'bg-green-500' : 'bg-mc-text-secondary'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    );
-                  })()}
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -339,6 +320,23 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
                       {checkpoints[agent.id].summary}
                     </div>
                   )}
+                  
+                  {/* Sub-agent session dots — row below card content */}
+                  {(() => {
+                    const agentSessions = subAgentSessions.filter(s => s.parent_agent_id === agent.id);
+                    if (agentSessions.length === 0) return null;
+                    return (
+                      <div className="flex gap-1 mt-2">
+                        {agentSessions.map((s) => (
+                          <span
+                            key={s.id}
+                            title={s.metadata?.instructions || s.openclaw_session_id}
+                            className="inline-block w-2 h-2 rounded-full bg-green-500"
+                          />
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {process.env.NEXT_PUBLIC_DATABASE_PROVIDER === 'supabase' && (() => {

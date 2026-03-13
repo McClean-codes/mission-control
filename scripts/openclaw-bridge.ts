@@ -170,6 +170,29 @@ async function upsertSession(
  */
 async function markCompletedSessions(activeSessions: Set<string>): Promise<void> {
   try {
+    const activeSessionIds = Array.from(activeSessions);
+    
+    // Get all active sessions from DB
+    const { data: existingSessions, error: fetchError } = await supabase
+      .from('openclaw_sessions')
+      .select('id, openclaw_session_id')
+      .eq('status', 'active');
+
+    if (fetchError) {
+      console.error('[bridge] ERROR fetching active sessions:', fetchError);
+      return;
+    }
+
+    // Find sessions to mark as completed (exist in DB but not in current gateway poll)
+    const sessionsToComplete = (existingSessions || []).filter(
+      (session: any) => !activeSessionIds.includes(session.openclaw_session_id)
+    );
+
+    if (sessionsToComplete.length === 0) {
+      return; // Nothing to update
+    }
+
+    // Mark them as completed
     const { error } = await supabase
       .from('openclaw_sessions')
       .update({
@@ -177,11 +200,9 @@ async function markCompletedSessions(activeSessions: Set<string>): Promise<void>
         ended_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .eq('status', 'active')
-      .not('openclaw_session_id', 'in', `(${Array.from(activeSessions).map(s => `'${s}'`).join(',')})`);
+      .in('id', sessionsToComplete.map((s: any) => s.id));
 
-    if (error && error.code !== 'PGRST100') {
-      // PGRST100 is likely "no rows" which is fine
+    if (error) {
       console.error('[bridge] ERROR marking completed sessions:', error);
     }
   } catch (error) {
@@ -268,7 +289,9 @@ async function poll(): Promise<void> {
     }
 
     // Mark sessions as completed if no longer active
-    if (seenSessions.size > 0) {
+    // Guard: only mark completed if we have active sessions to compare against
+    // (avoids marking all sessions as complete on an empty gateway poll)
+    if (seenSessions.size > 0 && currentActiveSessions.size > 0) {
       await markCompletedSessions(currentActiveSessions);
     }
 
