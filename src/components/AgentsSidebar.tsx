@@ -47,7 +47,6 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [showDiscoverModal, setShowDiscoverModal] = useState(false);
-  const [activeSubAgents, setActiveSubAgents] = useState(0);
   const [isMinimized, setIsMinimized] = useState(false);
   const [checkpoints, setCheckpoints] = useState<Record<string, Checkpoint>>({});
   const [heartbeats, setHeartbeats] = useState<Record<string, Heartbeat>>({});
@@ -86,7 +85,6 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
         if (res.ok) {
           const sessions: SubAgentSession[] = await res.json();
           setSubAgentSessions(sessions);
-          setActiveSubAgents(sessions.length);
         }
       } catch (error) {
         console.error('Failed to load sub-agent sessions:', error);
@@ -230,16 +228,6 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
 
         {!effectiveMinimized && (
           <>
-            {activeSubAgents > 0 && (
-              <div className="mb-3 mt-3 px-3 py-2 bg-green-500/10 border border-green-500/20 rounded-lg">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-green-400">●</span>
-                  <span className="text-mc-text">Active Sub-Agents:</span>
-                  <span className="font-bold text-green-400">{activeSubAgents}</span>
-                </div>
-              </div>
-            )}
-
             <div className={`mt-3 ${mobileMode && isPortrait ? 'grid grid-cols-3 gap-2' : 'flex gap-1'}`}>
               {(['all', 'working', 'standby'] as FilterTab[]).map((tab) => (
                 <button
@@ -300,25 +288,6 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
                 <div className="text-2xl relative">
                   {agent.avatar_emoji}
                   {openclawSession && <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-mc-bg-secondary" />}
-                  
-                  {/* Sub-agent session dots */}
-                  {(() => {
-                    const agentSessions = subAgentSessions.filter(s => s.parent_agent_id === agent.id);
-                    if (agentSessions.length === 0) return null;
-                    return (
-                      <div className="absolute -top-1 left-1/2 -translate-x-1/2 flex gap-0.5">
-                        {agentSessions.map((s) => (
-                          <span
-                            key={s.id}
-                            title={s.metadata?.instructions || s.openclaw_session_id}
-                            className={`inline-block w-1.5 h-1.5 rounded-full ${
-                              s.status === 'active' ? 'bg-green-500' : 'bg-mc-text-secondary'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    );
-                  })()}
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -339,6 +308,23 @@ export function AgentsSidebar({ workspaceId, mobileMode = false, isPortrait = tr
                       {checkpoints[agent.id].summary}
                     </div>
                   )}
+                  
+                  {/* Sub-agent session dots — row below card content */}
+                  {(() => {
+                    const agentSessions = subAgentSessions.filter(s => s.parent_agent_id === agent.id);
+                    if (agentSessions.length === 0) return null;
+                    return (
+                      <div className="flex gap-1 mt-2">
+                        {agentSessions.map((s) => (
+                          <span
+                            key={s.id}
+                            title={s.metadata?.instructions || s.openclaw_session_id}
+                            className="inline-block w-2 h-2 rounded-full bg-green-500"
+                          />
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {process.env.NEXT_PUBLIC_DATABASE_PROVIDER === 'supabase' && (() => {
