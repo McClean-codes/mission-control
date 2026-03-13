@@ -21,6 +21,7 @@ interface SessionWithAgent {
   updated_at: string;
   agent_name?: string;
   agent_avatar_emoji?: string;
+  parent_agent_name?: string | null;
 }
 
 interface SessionsListProps {
@@ -158,11 +159,16 @@ export function SessionsList({ taskId }: SessionsListProps) {
           {/* Content */}
           <div className="flex-1 min-w-0">
             {/* Agent name and status */}
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
               {getStatusIcon(session.status)}
               <span className="font-medium text-mc-text">
                 {session.agent_name || 'Sub-Agent'}
               </span>
+              {session.parent_agent_name && (
+                <span className="text-xs text-mc-text-secondary">
+                  via {session.parent_agent_name}
+                </span>
+              )}
               <span className="text-xs text-mc-text-secondary capitalize">
                 {session.status}
               </span>

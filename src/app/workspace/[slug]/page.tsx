@@ -316,7 +316,6 @@ function MobileSettingsPanel({ workspace, denseLandscape = false }: { workspace:
           <div className="text-xs text-mc-text-secondary mt-1">/{workspace.slug}</div>
         </div>
 
-
         <Link href={`/workspace/${workspace.slug}/activity`} className="w-full min-h-11 px-4 rounded-lg border border-mc-border bg-mc-bg-secondary flex items-center justify-between text-sm">
           <span className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
