@@ -2,7 +2,7 @@
  * OpenClaw Bridge
  * 
  * Polls the OpenClaw gateway for active sessions and syncs them to Supabase.
- * Detects sub-agent sessions (key format: agent:<parent>:acp:<uuid>) and links them to parent agents.
+ * Detects sub-agent sessions (key format: agent:main:subagent:<uuid>) and links them to parent agents.
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -61,46 +61,47 @@ const agentStatuses = new Map<string, 'working' | 'standby'>();
 
 /**
  * Parse a session key to determine if it's a sub-agent session.
- * Sub-agent key format: agent:<parent_name>:acp:<uuid>
- * Returns { isSubagent: boolean, parentName?: string }
+ * Real sub-agent key format: agent:main:subagent:<uuid>
+ * Returns { isSubagent: boolean }
  */
-function parseSessionKey(key: string): { isSubagent: boolean; parentName?: string } {
-  if (key.includes(':acp:')) {
-    const parts = key.split(':');
-    if (parts[0] === 'agent' && parts.length >= 3) {
-      return { isSubagent: true, parentName: parts[1] };
-    }
+function parseSessionKey(key: string): { isSubagent: boolean } {
+  // Real format: agent:main:subagent:<uuid>
+  if (key.includes(':subagent:')) {
+    return { isSubagent: true };
   }
   return { isSubagent: false };
 }
 
 /**
- * Fetch active sessions from OpenClaw gateway
+ * Fetch active sessions by reading the OpenClaw sessions file directly.
+ * The gateway does not expose a REST /sessions endpoint — sessions live in
+ * a local JSON file on disk.
  */
 async function fetchOpenClawSessions(): Promise<OpenClawSession[]> {
+  // Resolve sessions file path: $HOME/.openclaw/agents/main/sessions/sessions.json
+  const homedir = process.env.HOME || '/home/randolph';
+  const sessionsFile = `${homedir}/.openclaw/agents/main/sessions/sessions.json`;
+
   try {
-    const response = await fetch(`${OPENCLAW_GATEWAY_URL}/sessions`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const { readFile } = await import('fs/promises');
+    const raw = await readFile(sessionsFile, 'utf8');
+    const data = JSON.parse(raw);
 
-    if (!response.ok) {
-      console.error(`[bridge] ERROR fetching sessions: ${response.status}`);
-      return [];
+    // The file is an object keyed by session key (not an array)
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      return Object.entries(data).map(([key, val]: [string, any]) => ({
+        key,
+        ...(typeof val === 'object' && val !== null ? val : {}),
+      }));
     }
-
-    const data = await response.json();
-    // Handle both array and object responses
+    // Fallback: array format
     if (Array.isArray(data)) {
       return data;
     }
-    if (data && typeof data === 'object' && data.sessions && Array.isArray(data.sessions)) {
-      return data.sessions;
-    }
-    console.warn('[bridge] WARNING: Unexpected sessions response shape:', typeof data);
+    console.warn('[bridge] WARNING: Unexpected sessions file shape');
     return [];
   } catch (error) {
-    console.error('[bridge] ERROR fetching OpenClaw sessions:', error);
+    console.error('[bridge] ERROR reading sessions file:', error);
     return [];
   }
 }
@@ -244,30 +245,61 @@ async function poll(): Promise<void> {
 
       currentActiveSessions.add(sessionKey);
 
-      const { isSubagent, parentName } = parseSessionKey(sessionKey);
+      const { isSubagent } = parseSessionKey(sessionKey);
 
-      if (isSubagent && parentName) {
-        // Sub-agent session
-        const parentAgentId = agents[parentName];
+      if (isSubagent) {
+        // Sub-agent session: key format is agent:main:subagent:<uuid>
+        // The session's label may encode which agent spawned it (e.g. "test-subagent-1").
+        // Since parent name is not in the key, we use the session label to look up
+        // the parent agent, falling back to the first configured agent (primary).
+        const sessionLabel: string = (session as any).label || '';
+        
+        // Try to match label prefix to a known agent name (e.g. "sherlock-subagent-1" → sherlock)
+        let parentAgentId: string | null = null;
+        let parentName = 'unknown';
+        for (const agentName of AGENT_IDS) {
+          if (sessionLabel.toLowerCase().startsWith(agentName.toLowerCase())) {
+            parentAgentId = agents[agentName] || null;
+            parentName = agentName;
+            break;
+          }
+        }
+
+        // Fallback: assign to the first agent in AGENT_IDS (primary agent)
+        if (!parentAgentId && AGENT_IDS.length > 0) {
+          parentName = AGENT_IDS[0];
+          parentAgentId = agents[AGENT_IDS[0]] || null;
+        }
+
         if (parentAgentId) {
-          const agentId = agents[sessionKey.split(':')[1]]; // Try to get agent ID from key, fallback to parent
-          const subagentName = sessionKey.split(':')[1];
-          const actualAgentId = agents[subagentName] || parentAgentId;
-
-          await upsertSession(sessionKey, actualAgentId, parentAgentId, 'subagent');
+          // Use parent agent id for the sub-agent record (no dedicated MC agent for subagents)
+          await upsertSession(sessionKey, parentAgentId, parentAgentId, 'subagent');
           activeAgents.add(parentAgentId);
 
           const oldStatus = agentStatuses.get(parentAgentId);
           if (oldStatus !== 'working') {
-            console.log(`[bridge] ${parentName}: ${oldStatus || 'standby'} → working`);
+            console.log(`[bridge] ${parentName}: ${oldStatus || 'standby'} → working (subagent spawned)`);
             agentStatuses.set(parentAgentId, 'working');
             await updateAgentStatus(parentAgentId, 'working');
           }
         }
       } else {
-        // Persistent agent session
-        const agentName = sessionKey.split(':')[0] || sessionKey;
-        const agentId = agents[agentName];
+        // Persistent agent session: key format is agent:main:discord:... or agent:main:main etc.
+        // Extract agent name from AGENT_IDS by checking if session belongs to a known agent workspace.
+        // All sessions on this host are under "main" agent workspace.
+        // We match against AGENT_IDS by looking at channel/label or skip non-agent sessions.
+        const sessionLabel: string = (session as any).label || '';
+        let agentId: string | null = null;
+        let agentName = '';
+
+        for (const name of AGENT_IDS) {
+          if (sessionLabel.toLowerCase().includes(name.toLowerCase()) || 
+              sessionKey.includes(`:${name.toLowerCase()}:`)) {
+            agentId = agents[name] || null;
+            agentName = name;
+            break;
+          }
+        }
 
         if (agentId) {
           await upsertSession(sessionKey, agentId, null, 'persistent');
