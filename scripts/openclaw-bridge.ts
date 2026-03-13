@@ -139,7 +139,8 @@ async function upsertSession(
   sessionKey: string,
   agentId: string,
   parentAgentId: string | null,
-  sessionType: 'persistent' | 'subagent'
+  sessionType: 'persistent' | 'subagent',
+  metadata?: Record<string, any>
 ): Promise<void> {
   try {
     const { error } = await supabase
@@ -152,6 +153,7 @@ async function upsertSession(
           session_type: sessionType,
           status: 'active',
           channel: null,
+          metadata: metadata || null,
           task_id: null,
           updated_at: new Date().toISOString(),
         },
@@ -273,7 +275,9 @@ async function poll(): Promise<void> {
 
         if (parentAgentId) {
           // Use parent agent id for the sub-agent record (no dedicated MC agent for subagents)
-          await upsertSession(sessionKey, parentAgentId, parentAgentId, 'subagent');
+          await upsertSession(sessionKey, parentAgentId, parentAgentId, 'subagent', {
+            label: sessionLabel || null,
+          });
           activeAgents.add(parentAgentId);
 
           const oldStatus = agentStatuses.get(parentAgentId);
@@ -302,7 +306,9 @@ async function poll(): Promise<void> {
         }
 
         if (agentId) {
-          await upsertSession(sessionKey, agentId, null, 'persistent');
+          await upsertSession(sessionKey, agentId, null, 'persistent', {
+            label: sessionLabel || null,
+          });
           activeAgents.add(agentId);
 
           const oldStatus = agentStatuses.get(agentId);
