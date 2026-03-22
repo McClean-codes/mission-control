@@ -337,6 +337,7 @@ CREATE TABLE IF NOT EXISTS products (
   cost_cap_per_task REAL,
   cost_cap_monthly REAL,
   health_weight_config TEXT,
+  batch_review_threshold INTEGER DEFAULT 10,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );

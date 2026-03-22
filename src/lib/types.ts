@@ -447,6 +447,7 @@ export interface Product {
   cost_cap_per_task?: number;
   cost_cap_monthly?: number;
   health_weight_config?: string; // JSON: HealthWeightConfig
+  batch_review_threshold?: number;
   created_at: string;
   updated_at: string;
 }

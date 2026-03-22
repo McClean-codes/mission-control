@@ -1458,6 +1458,19 @@ const migrations: Migration[] = [
 
       console.log('[Migration 024] user_task_reads table created');
     }
+  },
+  {
+    id: '025',
+    name: 'add_batch_review_threshold',
+    up: (db) => {
+      console.log('[Migration 025] Adding batch_review_threshold column to products...');
+
+      const productsInfo = db.prepare("PRAGMA table_info(products)").all() as { name: string }[];
+      if (!productsInfo.some(col => col.name === 'batch_review_threshold')) {
+        db.exec(`ALTER TABLE products ADD COLUMN batch_review_threshold INTEGER DEFAULT 10`);
+        console.log('[Migration 025] Added batch_review_threshold to products');
+      }
+    }
   }
 ];
 
