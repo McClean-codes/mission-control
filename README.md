@@ -28,7 +28,7 @@ I highly recommend getting Hetzner VPS to run this. <a href="https://hetzner.clo
   <a href="https://missioncontrol.ghray.com"><strong>🎮 Live Demo</strong></a> •
   <a href="#-quick-start">Quick Start</a> •
   <a href="#-docker">Docker</a> •
-  <a href="#-whats-new-in-v241">What's New</a> •
+  <a href="#-whats-new-in-v250">What's New</a> •
   <a href="#-features">Features</a> •
   <a href="#-how-it-works">How It Works</a> •
   <a href="#-configuration">Configuration</a> •
@@ -41,15 +41,30 @@ I highly recommend getting Hetzner VPS to run this. <a href="https://hetzner.clo
 
 ---
 
-## 🚀 What's New in v2.4.1
+## 🚀 What's New in v2.5.0
 
-### Community Bug Fixes
+### Per-Task Agent Sessions ([#99](https://github.com/crshdn/mission-control/issues/99))
+Each dispatched task now gets its own OpenClaw conversation session. Previously, all tasks assigned to the same agent shared one session, causing context to accumulate across tasks until the model's context window was exhausted and the agent stalled. The `openclaw_sessions` table already had a `task_id` column — dispatch now uses it for session lookup, session ID generation, and insert. Parallel tasks on the same agent work independently.
+
+### Flexible Agent ID Validation ([#100](https://github.com/crshdn/mission-control/issues/100))
+Agent ID fields now accept both standard UUID format (`8-4-4-4-12`) and 32-character hex identifiers from the OpenClaw gateway. Previously, Zod's strict `.uuid()` validation rejected gateway-format agent IDs, causing "Invalid UUID" errors when assigning imported agents to tasks.
+
+### Task Delete Button Fix ([#111](https://github.com/crshdn/mission-control/issues/111))
+The task delete button now shows a loading state ("Deleting..."), disables during the request, and displays inline error messages when deletion fails. Previously, the button had no feedback — if the API request failed or was slow, users saw no response and assumed the button was broken.
+
+### Product Pause & Archive ([#98](https://github.com/crshdn/mission-control/issues/98))
+The Autopilot product settings modal now includes a **Status** dropdown (Active / Paused) and a **Danger Zone** section with an Archive button. Paused products stop automated research and ideation cycles. Archived products are hidden from the dashboard but data is preserved. The main product listing now filters out archived products.
+
+### Previous Releases
+
+<details>
+<summary>v2.4.1 — Community Bug Fixes</summary>
+
 - **Autopilot model routing** — Provider models now route through `openclaw/default` with the original model in `x-openclaw-model`, fixing 404 errors on OpenClaw deployments. ([@Ahmedkasmi-dev](https://github.com/Ahmedkasmi-dev), [#109](https://github.com/crshdn/mission-control/pull/109))
 - **AUTOPILOT_MODEL env var** — Removed hardcoded model override in description generation so the shared `AUTOPILOT_MODEL` config is respected. ([@aaronmeza](https://github.com/aaronmeza), [#116](https://github.com/crshdn/mission-control/pull/116))
 - **Gateway catalog sync** — Local agent role assignments are now preserved during gateway sync instead of being overwritten every 60 seconds. ([@cgluttrell](https://github.com/cgluttrell), [#119](https://github.com/crshdn/mission-control/pull/119))
 - **Task chat reliability** — Agent replies are now captured even without an active SSE connection, and the "waiting" indicator no longer shows stale state. ([@heliokeplert-ctrl](https://github.com/heliokeplert-ctrl), [#126](https://github.com/crshdn/mission-control/pull/126))
-
-### Previous Releases
+</details>
 
 <details>
 <summary>v2.4.0 — Agent Skill Creation Loop</summary>
